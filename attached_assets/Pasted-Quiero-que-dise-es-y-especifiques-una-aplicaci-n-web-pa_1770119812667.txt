@@ -1,0 +1,461 @@
+Quiero que diseñes y especifiques una aplicación web para registrar, digitalizar e integrar respuestas del “CUESTIONARIO DE INTERÉS – PROYECTO SOUTO VIVO (Participación en fincas agroforestales piloto)”. El sistema debe admitir tres vías de entrada (web, OCR desde escaneos, integración con Google Forms) y un panel de consulta con filtros. Además, debe contemplar un flujo de validación humana para los datos extraídos por OCR antes de considerarlos definitivos.
+1) Objetivo del sistema
+Centralizar todas las respuestas al cuestionario en una base de datos única, permitiendo:
+Alta manual desde web (formulario digital).
+
+
+Carga masiva de cuestionarios escaneados + OCR + revisión/validación.
+
+
+Sincronización automática con respuestas de Google Forms (mismo cuestionario).
+
+
+Consulta y análisis mediante un panel con filtros y exportación.
+
+
+2) Roles y permisos (RBAC)
+usuario admin creado por defecto con creddeciales en .secrets. al entrar lo primero que se verá de la web será el login
+3) Canales de entrada (3 modos)
+(A) Formulario web (captura directa)
+Implementar un formulario web que replique exactamente las secciones y campos del cuestionario.
+
+
+Validación de campos obligatorios.
+
+
+Guardado como “submisión” (submission) con estado:
+
+
+BORRADOR (si se guarda parcialmente),
+
+
+ENVIADO (si se completa),
+
+
+APROBADO (si requiere revisión interna opcional),
+
+
+RECHAZADO (si se anula).
+
+
+(B) Subida de PDFs escaneados (uno o varios) + OCR + propuesta + validación
+Pantalla para subir uno o varios archivos (PDF/JPG/PNG).
+
+
+Crear un job de OCR por archivo (o por página).
+
+
+Extraer campos del cuestionario mediante OCR y generar una “propuesta de datos” (candidate extraction):
+
+
+Guardar para cada campo: valor propuesto, confianza OCR, coordenadas/fragmento, y referencia al archivo/página.
+
+
+Interfaz de validación:
+
+
+Mostrar el PDF/imagen y, en paralelo, los campos extraídos.
+
+
+Permitir editar valores, marcar como correctos/incorrectos, dejar comentarios.
+
+
+Acción final: “Aprobar” (convierte propuesta en registro definitivo) o “Rechazar” (mantiene el archivo pero no crea/actualiza el registro).
+
+
+Estados del OCR:
+
+
+PENDIENTE_OCR, OCR_COMPLETADO, PENDIENTE_REVISION, APROBADO, RECHAZADO.
+
+
+Debe existir detección de duplicados (por ejemplo, combinación de nombre+teléfono+localidad+referencias catastrales) y aviso al revisor.
+
+
+(C) Integración automática con Google Forms (mismo cuestionario)
+Conectar a un Google Form equivalente al cuestionario.
+
+
+Ingesta continua: nuevas respuestas deben crear registros automáticamente en la BD.
+
+
+Debe existir un mapeo de campos Google Forms → campos internos.
+
+
+Debe manejar:
+
+
+Actualizaciones si se reenvía una respuesta (según responseId o timestamp),
+
+
+Duplicados,
+
+
+Campos “otros (especificar)” como textos libres asociados.
+
+
+Registrar fuente del dato: WEB, OCR, GOOGLE_FORMS.
+
+
+4) Panel web de consulta y filtrado
+Crear una sección “Consulta” con:
+Tabla/listado de registros con paginación.
+
+
+Filtros por:
+
+
+Localidad,
+
+
+Género, edad,
+
+
+Relación con la finca, agricultor a título principal,
+
+
+Superficie (rango/categoría),
+
+
+Tipo de finca (multi),
+
+
+Uso actual del suelo,
+
+
+Producción actual (sí/no),
+
+
+Acceso, agua, pendiente, pedregosidad,
+
+
+Grado de interés y nivel de actuación,
+
+
+Necesidades/objetivos (multi),
+
+
+Necesidades formativas (multi),
+
+
+Disposición a gestión conjunta, minifundio, cesión, gobernanza (multi),
+
+
+Consentimientos RGPD.
+
+
+Búsqueda global por texto (nombre, email, localidad, referencia catastral).
+
+
+Vista detalle de un registro con historial de cambios, fuente, adjuntos y (si aplica) el PDF escaneado.
+
+
+Exportación CSV/XLSX (respetando permisos y RGPD).
+
+
+5) Modelo de datos (BD) — propuesta relacional
+Diseñar una BD (PostgreSQL recomendado) con estas entidades mínimas:
+Tabla users
+id, nombre, email, hash_password, rol, activo, created_at.
+
+
+Tabla submissions (registro principal del cuestionario)
+id (UUID), fuente (WEB|OCR|GOOGLE_FORMS), estado (BORRADOR|ENVIADO|APROBADO|RECHAZADO),
+
+
+created_at, updated_at,
+
+
+created_by, updated_by,
+
+
+(opcional) external_id (para Google Forms).
+
+
+Tabla person (1:1 o embebida en submissions)
+submission_id (FK),
+
+
+nombre_apellidos (texto),
+
+
+telefono (texto),
+
+
+email (texto),
+
+
+localidad (texto),
+
+
+genero (enum),
+
+
+edad (enum),
+
+
+relacion_finca (enum principal) + relacion_finca_otro (texto),
+
+
+titularidad_compartida (bool o enum) solo si relacion_finca incluye propietario/a,
+
+
+agricultor_titulo_principal (enum),
+
+
+asociacion_pertenece (texto).
+
+
+Tabla farm (si una respuesta puede incluir varias fincas)
+id, submission_id,
+
+
+referencias_catastrales (texto largo o tabla hija),
+
+
+superficie_categoria (enum) + superficie_otra (texto) + superficie_pendiente_consultar (bool),
+
+
+tipo_finca (multi),
+
+
+uso_suelo (enum) + uso_suelo_otro (texto),
+
+
+en_produccion (bool).
+
+
+Tabla farm_conditions
+farm_id,
+
+
+acceso (enum),
+
+
+agua (enum),
+
+
+pendiente (enum),
+
+
+pedregosidad (enum).
+
+
+Tabla needs (multi-selección)
+submission_id,
+
+
+necesidad (enum) y/o tabla puente submission_needs.
+
+
+Tabla agroforestry_model
+submission_id,
+
+
+objetivos_modelo (multi): conservación, reducción costes, impacto social, otros,
+
+
+produccion_principal (multi): madera, leña, castaña, vid, frutícola, hortícola, pasto/ganadera, apícolas,
+
+
+otros_objetivos_texto (texto).
+
+
+Tabla interest_commitment
+submission_id,
+
+
+grado_interes (enum),
+
+
+nivel_actuacion (enum),
+
+
+disponibilidad (multi),
+
+
+relevo_generacional (enum).
+
+
+Tabla training_needs
+submission_id,
+
+
+formacion (multi) + formacion_otro (texto).
+
+
+Tabla social_collective
+submission_id,
+
+
+colaboracion (enum),
+
+
+minifundio (enum),
+
+
+cesion_tierras (enum),
+
+
+gobernanza_comunidad (multi) + gobernanza_otro (texto).
+
+
+Tabla final_observations
+submission_id,
+
+
+observaciones (texto largo).
+
+
+Tabla consents
+submission_id,
+
+
+consentimiento_tratamiento (bool),
+
+
+acepto_comunicaciones (bool),
+
+
+fecha_firma (fecha, opcional),
+
+
+firma (texto/archivo, opcional).
+
+
+Tablas OCR
+files (id, submission_id opcional, nombre, tipo, url/path, páginas, hash, created_at)
+
+
+ocr_jobs (id, file_id, estado, started_at, finished_at, engine, error)
+
+
+ocr_field_candidates (job_id, field_key, proposed_value, confidence, page, bbox, snippet)
+
+
+validation_reviews (id, job_id, reviewer_id, decision, comments, decided_at)
+
+
+Auditoría
+audit_log (id, entity, entity_id, action, diff_json, actor_id, timestamp)
+
+
+6) Formulario
+CUESTIONARIO DE INTERÉS - PROYECTO SOUTO VIVO
+Participación en fincas agroforestales piloto
+INFORMACIÓN PREVIA: El presente cuestionario tiene como finalidad identificar fincas que sean compatibles para albergar actuaciones agroforestales en el marco del proyecto Souto Vivo de la Asociación de Desarrollo Rural Bierzo-Cabrera. .La cumplimentación de este cuestionario no implica ningún compromiso u obligación de participación por parte de la persona interesada. La información recogida se utilizará exclusivamente para realizar una preselección técnica de fincas potenciales. En caso de que una finca resulte seleccionada, se formalizará un convenio de colaboración entre la persona interesada y el proyecto, en el que se definirán conjuntamente las actuaciones a realizar, los compromisos de ambas partes y su duración. Dicho convenio tendrá vigencia hasta la fecha de finalización y justificación del proyecto (abril de 2027).
+1. DATOS DE LA PERSONA INTERESADA
+Nombre y apellidos: _________________________________________________________
+Teléfono de contacto: ______________
+Correo electrónico: __________________________________________________________
+Localidad: _________________________________________________________________
+Género: ☐Mujer ☐Hombre Otros/es☐
+Edad: ☐Menos de 35 años ☐Entre 35 y 50 años ☐Más de 50 años
+Relación con la finca:
+☐Propietario/a. si marca esta opción ¿La finca está bajo el régimen de Titularidad Compartida? ☐Sí No"☐
+☐Arrendatario/a
+☐Gestor/a
+☐Otra (especificar): __________________________________
+Situación laboral: ¿ es usted agricultor/a a título principal? ☐Sí No, es complementario☐
+¿Pertenece usted a alguna asociación?, en caso afirmativo indique cual_______________
+2. INFORMACIÓN BÁSICA DE LA FINCA
+Referencia catastral o polígono y parcela de la(s) finca(s) disponible(s) para actuación (esta información figura en los recibos del IBI y en la web del Catastro)
+________________________________________________________________________
+________________________________________________________________________
+________________________________________________________________________
+Superficie aproximada disponible para el proyecto:
+☐Menos de 1 ha ☐Entre 1 y 5 ha ☐Más de 5 ha ☐Otra (especificar):
+☐No lo sé / pendiente de consultar
+Tipo de finca (puede marcar varias opciones):
+☐Agrícola ☐Forestal ☐Mixta
+Uso actual del suelo (marcar una opción):
+☐Cultivo activo ☐Pasto ☐Monte ☐Sin uso / abandonado
+☐Otro (especificar): _____________________________________________
+¿La finca está actualmente en producción? ☐Sí ☐No
+3. CONDICIONES DE LA FINCA
+Acceso a la finca: ☐Bueno (acceso con vehículo) ☐Regular ☐Malo
+Disponibilidad de agua: ☐Sí ☐No ☐No lo sé
+Pendiente dominante del terreno: ☐Baja ☐Media ☐Alta
+Pedregosidad: ☐Baja ☐Media ☐Alta
+4. NECESIDADES Y OBJETIVOS DE LA FINCA
+¿Cuáles considera que son las principales necesidades de la finca? (Puede marcar varias opciones)
+☐Mejora de la productividad
+☐Control del matorral
+☐Prevención de incendios
+☐Mejora del suelo
+☐Diversificación de usos
+☐Puesta en valor de finca abandonada
+☐Otras (especificar): ________________________________
+¿Qué modelo agroforestal le gustaría conseguir? (Puede marcar varias opciones)
+☐Producción, principalmente de:
+☐Madera ☐Leña ☐Castaña Vid☐
+☐Frutícola (cereza, pera, manzana) ☐Hortícola (pimiento, cebolla)
+☐Pasto / ganadera ☐Productos apícolas (miel, polen, propóleo)
+☐Conservación del paisaje y la biodiversidad
+☐Reducción de costes de mantenimiento
+Nuevos modelos agroforestales de impacto social (uso de la finca para formaciones, creación☐ de empleo local, fomentar de la participación comunitaria...)
+☐Otros objetivos (especificar): ________________________________
+5. INTERÉS Y COMPROMISO
+Grado de interés en participar en un proyecto piloto: ☐Alto ☐Medio ☐Bajo
+¿En qué nivel estaría dispuesto/a que actúe nuestro proyecto?
+☐Solo diagnóstico y propuesta técnica ☐Implantación de actuaciones piloto
+Disponibilidad para (marcar lo que proceda):
+☐Asistir a reuniones o talleres
+☐Recibir visitas técnicas en la finca
+☐Colaborar en el seguimiento del proyecto
+¿Existe una previsión de relevo generacional para la gestión de la finca en los próximos 5-10 años?
+☐Sí, hay familiares o personas interesadas
+☐No, existe riesgo de abandono tras mi jubilación.
+☐Estoy buscando a alguien que quiera trabajarla.
+6. NECESIDADES FORMATIVAS ¿En qué aspectos le gustaría recibir formación? (Puede marcar varias opciones y concretar los contenidos que le interesan)
+☐Cultivo del castaño
+☐Sistemas agroforestales
+☐Agricultura regenerativa
+☐Ganadería regenerativa
+☐Plantaciones de fijación de carbono
+☐Comercialización de productos
+☐Tramitación de ayudas
+☐Legislación y fiscalidad
+☐Otros (especificar): ________________________________
+7. DIMENSIÓN SOCIAL Y GESTIÓN COLECTIVA
+Modelos de colaboración ¿Estaría dispuesto/a a participar en fórmulas de gestión conjunta con otros propietarios o propietarias de fincas colindantes?
+☐Sí, me interesa integrarme en una agrupación para reducir costes y mejorar la producción.
+☐Sí, pero solo para acciones puntuales (ej. limpieza de caminos, tratamientos contra plagas).
+☐No, prefiero mantener la gestión de mi finca de forma totalmente individual.
+☐No lo sé, necesitaría asesoramiento jurídico y técnico previo.
+El problema del minifundio ¿Considera que el tamaño o la dispersión de sus fincas es un obstáculo para su rentabilidad?
+☐Sí, mucho ☐Sí, aunque dificulta las tareas es asumible ☐No, el tamaño es adecuado
+Cesión de Tierras En caso de que usted NO pueda trabajar la finca, ¿estaría dispuesto/a a ceder su gestión a través de un Banco de tierras o fórmulas similares para evitar su abandono?
+☐Sí, bajo un contrato de arrendamiento o cesión ☐Sí, pero solo a alguien del munipio ☐ No, no tengo interés en ceder la gestión.
+Gobernanza y Comunidad ¿Cómo cree que el proyecto Souto Vivo podría mejorar la convivencia y la economía del pueblo? (Puede marcar varias opciones):
+☐Creando una cooperativa o agrupación de productores local.
+☐Recuperando caminos y accesos que beneficien a toda la vecindad.
+Organizando "hacenderas" o jornadas de trabajo comunitario voluntario.☐
+Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que☐ quieren trabajar la tierra.
+☐Otros:__________________________________________________________________
+8 OBSERVACIONES FINALES Comentarios, dudas o propuestas adicionales:___________________________________________________________________________________________________________________________________________________
+9. CLÁUSULA DE PROTECCIÓN DE DATOS
+De conformidad con lo dispuesto en el Reglamento (UE) 2016/679 (RGPD) y la Ley Orgánica 3/2018 (LOPDGDD), se le informa de lo siguiente:
+Responsable del Tratamiento: Asociación de Desarrollo Rural (ADR) Bierzo-Cabrera.
+Finalidad: La recogida de estos datos tiene como única finalidad la gestión técnica y administrativa de su solicitud de participación en el proyecto "Souto Vivo", la evaluación de la idoneidad de las fincas para la implantación de proyectos piloto y el contacto para informarle sobre el estado de su solicitud.
+Legitimación: El tratamiento de sus datos se basa en el consentimiento explícito que otorga al cumplimentar y entregar este cuestionario.
+Destinatarios: Sus datos no serán cedidos a terceros, con excepción de los organismos públicos legalmente previstos y el Ministerio de Derechos Sociales y Agenda 2030, exclusivamente para fines de justificación, auditoría y control de las subvenciones otorgadas al proyecto.
+Derechos: Usted puede ejercer sus derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición mediante escrito dirigido a la sede de la ADR Bierzo-Cabrera o a través del correo electrónico: hola@somosadr.org aportando copia de su documento de identidad.
+Mediante la entrega de este cuestionario, declaro que he sido informado/a sobre el tratamiento de mis datos y:
+☐ CONSIENTO el tratamiento de mis datos personales para la gestión técnica y el análisis de mi finca dentro del proyecto "Souto Vivo"
+☐ACEPTO recibir comunicaciones relacionadas directamente con las actividades, formaciones y avisos de este proyecto.
+
+
+
+7) Requisitos no funcionales (mínimos)
+Seguridad: autenticación, autorización por roles, cifrado en tránsito (HTTPS), protección de datos personales.
+
+
+RGPD: minimización, trazabilidad, control de acceso, exportación con permisos, política de retención.
+
+
+Observabilidad: logs, métricas de OCR (precisión por campo), trazas de validación.
+
+
+Escalabilidad: subida masiva de PDFs; procesamiento OCR asíncrono con cola (jobs).
+
