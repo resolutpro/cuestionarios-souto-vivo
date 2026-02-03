@@ -1,10 +1,31 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { seedDatabase } from "./seed";
+import MemoryStore from "memorystore";
 
 const app = express();
 const httpServer = createServer(app);
+
+const MemoryStoreSession = MemoryStore(session);
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "souto-vivo-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStoreSession({
+      checkPeriod: 86400000,
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
 declare module "http" {
   interface IncomingMessage {
@@ -61,6 +82,12 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  
+  try {
+    await seedDatabase();
+  } catch (error) {
+    console.error("Error seeding database:", error);
+  }
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
