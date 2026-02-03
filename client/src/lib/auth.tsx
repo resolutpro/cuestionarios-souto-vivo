@@ -5,7 +5,7 @@ import { apiRequest } from "./queryClient";
 interface AuthContextType {
   isAuthenticated: boolean;
   user: { username: string } | null;
-  login: (username: string) => void;
+  login: (username: string, onComplete?: () => void) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -43,9 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = (username: string) => {
+  const login = (username: string, onComplete?: () => void) => {
     setUser({ username });
     setIsAuthenticated(true);
+    if (onComplete) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          onComplete();
+        });
+      });
+    }
   };
 
   const logout = async () => {

@@ -59,11 +59,7 @@ export default function GoogleFormsPage() {
 
   const saveConfigMutation = useMutation({
     mutationFn: async (data: { formId: string; formUrl?: string }) => {
-      return apiRequest("/api/google-forms/config", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/google-forms/config", data);
     },
     onSuccess: () => {
       toast({ title: "Configuración guardada correctamente" });
@@ -79,11 +75,7 @@ export default function GoogleFormsPage() {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async (isActive: boolean) => {
-      return apiRequest("/api/google-forms/config/toggle", {
-        method: "POST",
-        body: JSON.stringify({ isActive }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/google-forms/config/toggle", { isActive });
     },
     onSuccess: () => {
       toast({ title: "Estado de sincronización actualizado" });
@@ -96,9 +88,8 @@ export default function GoogleFormsPage() {
 
   const syncNowMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/google-forms/sync", {
-        method: "POST",
-      });
+      const response = await apiRequest("POST", "/api/google-forms/sync");
+      return response.json();
     },
     onSuccess: (data: any) => {
       toast({ 

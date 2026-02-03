@@ -33,12 +33,13 @@ export default function LoginPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      login(data.username);
+      login(data.username, () => {
+        setLocation("/");
+      });
       toast({
         title: "Bienvenido",
         description: "Has iniciado sesión correctamente.",
       });
-      setLocation("/");
     },
     onError: () => {
       setShowError(true);
