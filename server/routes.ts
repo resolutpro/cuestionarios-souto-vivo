@@ -434,6 +434,35 @@ export async function registerRoutes(
           });
 
           jobs.push(job);
+
+          // Simular ejecución de OCR y generación de propuesta
+          setTimeout(async () => {
+            try {
+              // 1. Crear campos extraídos simulados
+              const fields = [
+                { fieldName: "nombreApellidos", proposedValue: "Juan Pérez García", confidence: 95 },
+                { fieldName: "localidad", proposedValue: "Santiago de Compostela", confidence: 88 },
+                { fieldName: "telefono", proposedValue: "600123456", confidence: 98 },
+                { fieldName: "email", proposedValue: "juan.perez@example.com", confidence: 92 },
+              ];
+
+              for (const field of fields) {
+                await storage.createOcrExtractedField({
+                  ocrJobId: job.id,
+                  fieldName: field.fieldName,
+                  proposedValue: field.proposedValue,
+                  confidence: field.confidence,
+                  isVerified: false,
+                });
+              }
+
+              // 2. Actualizar estado del trabajo
+              await storage.updateOcrJobStatus(job.id, "pendiente_revision");
+              console.log(`OCR Job ${job.id} procesado automáticamente.`);
+            } catch (err) {
+              console.error(`Error en procesamiento OCR automático para ${job.id}:`, err);
+            }
+          }, 2000);
         }
 
         return res

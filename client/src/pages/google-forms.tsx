@@ -345,67 +345,35 @@ export default function GoogleFormsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {statsLoading ? (
+            {statsLoading || responsesLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ) : stats ? (
+            ) : (
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold">{stats.totalResponses}</p>
-                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-2xl font-bold">
+                    {responses?.filter(r => !r.isSubmission).length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Respuestas</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.processedResponses}</p>
-                  <p className="text-sm text-muted-foreground">Procesadas</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {responses?.filter(r => r.isSubmission).length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Cuestionarios</p>
                 </div>
                 <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingResponses}</p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    {responses?.filter(r => !r.isSubmission && !r.processedAt).length || 0}
+                  </p>
                   <p className="text-sm text-muted-foreground">Pendientes</p>
                 </div>
               </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">
-                No hay estadísticas disponibles.
-              </p>
             )}
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Mapeo de Campos</CardTitle>
-          <CardDescription>
-            Correspondencia entre campos de Google Forms y campos internos del cuestionario.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Campo Google Forms</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Campo Interno</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {fieldMappings.map((mapping, index) => (
-                  <tr key={index} className="hover:bg-muted/50">
-                    <td className="px-4 py-3 text-sm">{mapping.googleField}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <code className="px-2 py-1 bg-muted rounded text-xs">{mapping.internalField}</code>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            * Los campos "otros (especificar)" se mapean automáticamente a los campos de texto libre asociados.
-          </p>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
