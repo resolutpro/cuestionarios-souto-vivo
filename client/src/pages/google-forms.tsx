@@ -30,7 +30,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import type { GoogleFormsConfig, GoogleFormsResponse } from "@shared/schema";
+import type { GoogleFormsConfig, GoogleFormsResponse, Submission } from "@shared/schema";
 
 interface GoogleFormsStats {
   totalResponses: number;
@@ -40,6 +40,7 @@ interface GoogleFormsStats {
 }
 
 export default function GoogleFormsPage() {
+  const [useStateValue, useStateSet] = useState(""); // Dummy for preserving useState import logic if needed
   const { toast } = useToast();
   const [newFormId, setNewFormId] = useState("");
   const [newFormUrl, setNewFormUrl] = useState("");
@@ -53,8 +54,23 @@ export default function GoogleFormsPage() {
     queryKey: ["/api/google-forms/stats"],
   });
 
-  const { data: responses, isLoading: responsesLoading } = useQuery<GoogleFormsResponse[]>({
-    queryKey: ["/api/google-forms/responses"],
+  const { data: responses, isLoading: responsesLoading } = useQuery<(GoogleFormsResponse | (Submission & { isSubmission: true }))[]>({
+    queryKey: ["/api/google-forms/responses-integrated"],
+    queryFn: async () => {
+      const [responsesRes, submissionsRes] = await Promise.all([
+        fetch("/api/google-forms/responses"),
+        fetch("/api/submissions?source=google_forms&limit=50")
+      ]);
+      const responsesData = await responsesRes.json();
+      const submissionsData = await submissionsRes.json();
+      
+      const integrated = [
+        ...responsesData.map((r: any) => ({ ...r, isSubmission: false })),
+        ...submissionsData.submissions.map((s: any) => ({ ...s, isSubmission: true, responseId: `SUB-${s.id}` }))
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      return integrated;
+    }
   });
 
   const saveConfigMutation = useMutation({
@@ -405,20 +421,28 @@ export default function GoogleFormsPage() {
             </div>
           ) : responses && responses.length > 0 ? (
             <div className="space-y-3">
-              {responses.slice(0, 10).map((response) => (
+              {responses.slice(0, 20).map((item: any) => (
                 <div 
-                  key={response.id} 
+                  key={item.id} 
                   className="flex items-center justify-between p-4 border rounded-lg"
-                  data-testid={`card-response-${response.id}`}
+                  data-testid={`card-response-${item.id}`}
                 >
                   <div>
-                    <p className="font-medium">Respuesta #{response.responseId.slice(-8)}</p>
+                    <p className="font-medium">
+                      {item.isSubmission ? `Cuestionario: ${item.nombreApellidos || 'Sin nombre'}` : `Respuesta #${item.responseId.slice(-8)}`}
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(response.createdAt).toLocaleString("es-ES")}
+                      {new Date(item.createdAt).toLocaleString("es-ES")}
+                      {item.isSubmission && ` • ${item.localidad || 'Sin localidad'}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {response.processedAt ? (
+                    {item.isSubmission ? (
+                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Cuestionario Creado
+                      </Badge>
+                    ) : item.processedAt ? (
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Procesada
