@@ -353,19 +353,19 @@ export default function GoogleFormsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <p className="text-2xl font-bold">
-                    {responses?.filter(r => !r.isSubmission).length || 0}
+                    {responses?.filter((r: any) => !r.isSubmission).length || 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Respuestas</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {responses?.filter(r => r.isSubmission).length || 0}
+                    {responses?.filter((r: any) => r.isSubmission).length || 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Cuestionarios</p>
                 </div>
                 <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {responses?.filter(r => !r.isSubmission && !r.processedAt).length || 0}
+                    {responses?.filter((r: any) => !r.isSubmission && !r.processedAt).length || 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Pendientes</p>
                 </div>
