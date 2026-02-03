@@ -4,7 +4,9 @@ import {
   LayoutDashboard, 
   FileText, 
   PlusCircle, 
-  LogOut 
+  LogOut,
+  Upload,
+  FileSpreadsheet
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +38,16 @@ const menuItems = [
     title: "Nuevo Cuestionario",
     url: "/submissions/new",
     icon: PlusCircle,
+  },
+  {
+    title: "Subida OCR",
+    url: "/ocr",
+    icon: Upload,
+  },
+  {
+    title: "Google Forms",
+    url: "/google-forms",
+    icon: FileSpreadsheet,
   },
 ];
 

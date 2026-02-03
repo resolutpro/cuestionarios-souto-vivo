@@ -22,6 +22,7 @@ export const minifundioEnum = pgEnum("minifundio", ["si_mucho", "si_asumible", "
 export const landTransferEnum = pgEnum("land_transfer", ["si_contrato", "si_municipio", "no"]);
 export const submissionStatusEnum = pgEnum("submission_status", ["borrador", "enviado", "aprobado", "rechazado"]);
 export const sourceEnum = pgEnum("source", ["web", "ocr", "google_forms"]);
+export const ocrStatusEnum = pgEnum("ocr_status", ["pendiente_ocr", "ocr_completado", "pendiente_revision", "aprobado", "rechazado"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -109,6 +110,75 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
 export type Submission = typeof submissions.$inferSelect;
+
+export const ocrJobs = pgTable("ocr_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileType: text("file_type").notNull(),
+  status: ocrStatusEnum("status").notNull().default("pendiente_ocr"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: varchar("created_by"),
+  submissionId: varchar("submission_id"),
+  duplicateWarning: text("duplicate_warning"),
+  reviewerNotes: text("reviewer_notes"),
+});
+
+export const ocrExtractedFields = pgTable("ocr_extracted_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ocrJobId: varchar("ocr_job_id").notNull(),
+  fieldName: text("field_name").notNull(),
+  proposedValue: text("proposed_value"),
+  confidence: integer("confidence"),
+  coordinates: text("coordinates"),
+  pageNumber: integer("page_number"),
+  isVerified: boolean("is_verified").default(false),
+  isCorrect: boolean("is_correct"),
+  manualValue: text("manual_value"),
+  comment: text("comment"),
+});
+
+export const googleFormsConfig = pgTable("google_forms_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  formId: text("form_id").notNull(),
+  formUrl: text("form_url"),
+  lastSyncAt: timestamp("last_sync_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const googleFormsResponses = pgTable("google_forms_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  responseId: text("response_id").notNull().unique(),
+  formId: text("form_id").notNull(),
+  submissionId: varchar("submission_id"),
+  rawData: text("raw_data"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertOcrJobSchema = createInsertSchema(ocrJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOcrExtractedFieldSchema = createInsertSchema(ocrExtractedFields).omit({
+  id: true,
+});
+
+export const insertGoogleFormsConfigSchema = createInsertSchema(googleFormsConfig).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOcrJob = z.infer<typeof insertOcrJobSchema>;
+export type OcrJob = typeof ocrJobs.$inferSelect;
+export type InsertOcrExtractedField = z.infer<typeof insertOcrExtractedFieldSchema>;
+export type OcrExtractedField = typeof ocrExtractedFields.$inferSelect;
+export type GoogleFormsConfig = typeof googleFormsConfig.$inferSelect;
+export type GoogleFormsResponse = typeof googleFormsResponses.$inferSelect;
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Usuario requerido"),

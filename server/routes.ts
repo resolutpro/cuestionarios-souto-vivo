@@ -1,7 +1,63 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSubmissionSchema, submissionFilterSchema, loginSchema } from "@shared/schema";
+import { insertSubmissionSchema, submissionFilterSchema, loginSchema, insertOcrJobSchema, insertGoogleFormsConfigSchema } from "@shared/schema";
+import { z } from "zod";
+
+const ocrStatusSchema = z.object({
+  status: z.enum(["pendiente_ocr", "ocr_completado", "pendiente_revision", "aprobado", "rechazado"]),
+  submissionId: z.string().optional(),
+});
+
+const ocrFieldUpdateSchema = z.object({
+  manualValue: z.string().optional(),
+  isCorrect: z.boolean().optional(),
+  comment: z.string().optional(),
+  isVerified: z.boolean().optional(),
+});
+
+const googleFormsConfigInputSchema = z.object({
+  formId: z.string().min(1, "El ID del formulario es requerido"),
+  formUrl: z.string().optional(),
+});
+
+const googleFormsToggleSchema = z.object({
+  isActive: z.boolean(),
+});
+
+const duplicateCheckSchema = z.object({
+  nombre: z.string().optional(),
+  telefono: z.string().optional(),
+  localidad: z.string().optional(),
+  referencias: z.string().optional(),
+});
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Tipo de archivo no permitido"));
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 declare module "express-session" {
   interface SessionData {
@@ -260,6 +316,226 @@ export async function registerRoutes(
       return res.json(submission);
     } catch (error) {
       console.error("Error updating submission status:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.get("/api/ocr/jobs", requireAuth, async (req, res) => {
+    try {
+      const jobs = await storage.getOcrJobs();
+      return res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching OCR jobs:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.get("/api/ocr/jobs/:id", requireAuth, async (req, res) => {
+    try {
+      const job = await storage.getOcrJob(req.params.id);
+      if (!job) {
+        return res.status(404).json({ error: "Trabajo OCR no encontrado" });
+      }
+      const fields = await storage.getOcrExtractedFields(req.params.id);
+      return res.json({ ...job, extractedFields: fields });
+    } catch (error) {
+      console.error("Error fetching OCR job:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.post("/api/ocr/upload", requireAuth, upload.array("files", 10), async (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No se han subido archivos" });
+      }
+
+      const jobs = [];
+      for (const file of files) {
+        const job = await storage.createOcrJob({
+          fileName: file.originalname,
+          fileUrl: `/uploads/${file.filename}`,
+          fileType: file.mimetype,
+          status: "pendiente_ocr",
+          createdBy: req.session?.user?.username,
+        });
+        
+        jobs.push(job);
+      }
+
+      return res.status(201).json({ jobs, message: `${jobs.length} archivo(s) subido(s) correctamente` });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.post("/api/ocr/jobs/:id/check-duplicates", requireAuth, async (req, res) => {
+    try {
+      const result = duplicateCheckSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Datos inválidos", details: result.error.errors });
+      }
+      
+      const { nombre, telefono, localidad, referencias } = result.data;
+      const duplicates = await storage.checkDuplicates(
+        nombre || "", 
+        telefono || "", 
+        localidad || "", 
+        referencias || ""
+      );
+      
+      if (duplicates.length > 0) {
+        const job = await storage.getOcrJob(req.params.id);
+        if (job) {
+          await storage.updateOcrJobWithDuplicateWarning(req.params.id, 
+            `Posibles duplicados encontrados: ${duplicates.map(d => d.nombreApellidos).join(", ")}`
+          );
+        }
+      }
+      
+      return res.json({ 
+        hasDuplicates: duplicates.length > 0, 
+        duplicates: duplicates.map(d => ({
+          id: d.id,
+          nombre: d.nombreApellidos,
+          telefono: d.telefono,
+          localidad: d.localidad,
+          referencias: d.referenciasCatastrales
+        }))
+      });
+    } catch (error) {
+      console.error("Error checking duplicates:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.patch("/api/ocr/jobs/:id/status", requireAuth, async (req, res) => {
+    try {
+      const result = ocrStatusSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Datos inválidos", details: result.error.errors });
+      }
+
+      const { status, submissionId } = result.data;
+      const job = await storage.updateOcrJobStatus(req.params.id, status, submissionId);
+      if (!job) {
+        return res.status(404).json({ error: "Trabajo OCR no encontrado" });
+      }
+
+      return res.json(job);
+    } catch (error) {
+      console.error("Error updating OCR job status:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.patch("/api/ocr/fields/:id", requireAuth, async (req, res) => {
+    try {
+      const result = ocrFieldUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Datos inválidos", details: result.error.errors });
+      }
+      
+      const field = await storage.updateOcrExtractedField(req.params.id, result.data);
+      if (!field) {
+        return res.status(404).json({ error: "Campo no encontrado" });
+      }
+      return res.json(field);
+    } catch (error) {
+      console.error("Error updating OCR field:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.use("/uploads", requireAuth, (req, res, next) => {
+    const requestedPath = req.path.replace(/^\/+/, '');
+    const sanitizedPath = path.basename(requestedPath);
+    const filePath = path.join(uploadsDir, sanitizedPath);
+    
+    const resolvedPath = path.resolve(filePath);
+    if (!resolvedPath.startsWith(path.resolve(uploadsDir))) {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+    
+    if (fs.existsSync(resolvedPath)) {
+      return res.sendFile(resolvedPath);
+    }
+    return res.status(404).json({ error: "Archivo no encontrado" });
+  });
+
+  app.get("/api/google-forms/config", requireAuth, async (req, res) => {
+    try {
+      const config = await storage.getGoogleFormsConfig();
+      return res.json(config);
+    } catch (error) {
+      console.error("Error fetching Google Forms config:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.post("/api/google-forms/config", requireAuth, async (req, res) => {
+    try {
+      const result = googleFormsConfigInputSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Datos inválidos", details: result.error.errors });
+      }
+      
+      const { formId, formUrl } = result.data;
+      const config = await storage.saveGoogleFormsConfig(formId, formUrl);
+      return res.json(config);
+    } catch (error) {
+      console.error("Error saving Google Forms config:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.post("/api/google-forms/config/toggle", requireAuth, async (req, res) => {
+    try {
+      const result = googleFormsToggleSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Datos inválidos", details: result.error.errors });
+      }
+      
+      const { isActive } = result.data;
+      const config = await storage.toggleGoogleFormsActive(isActive);
+      if (!config) {
+        return res.status(404).json({ error: "Configuración no encontrada" });
+      }
+      return res.json(config);
+    } catch (error) {
+      console.error("Error toggling Google Forms active:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.get("/api/google-forms/stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getGoogleFormsStats();
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error fetching Google Forms stats:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.get("/api/google-forms/responses", requireAuth, async (req, res) => {
+    try {
+      const responses = await storage.getGoogleFormsResponses();
+      return res.json(responses);
+    } catch (error) {
+      console.error("Error fetching Google Forms responses:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
+  app.post("/api/google-forms/sync", requireAuth, async (req, res) => {
+    try {
+      await storage.updateGoogleFormsLastSync();
+      return res.json({ processed: 0, message: "Sincronización completada (simulada)" });
+    } catch (error) {
+      console.error("Error syncing Google Forms:", error);
       return res.status(500).json({ error: "Error interno del servidor" });
     }
   });

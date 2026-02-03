@@ -2,12 +2,22 @@ import { eq, desc, sql, and, or, ilike } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users, 
-  submissions, 
+  submissions,
+  ocrJobs,
+  ocrExtractedFields,
+  googleFormsConfig,
+  googleFormsResponses,
   type User, 
   type InsertUser,
   type Submission,
   type InsertSubmission,
-  type SubmissionFilter
+  type SubmissionFilter,
+  type OcrJob,
+  type InsertOcrJob,
+  type OcrExtractedField,
+  type InsertOcrExtractedField,
+  type GoogleFormsConfig,
+  type GoogleFormsResponse
 } from "@shared/schema";
 
 export interface IStorage {
@@ -21,6 +31,25 @@ export interface IStorage {
   getSubmissions(filters: SubmissionFilter, page: number, limit: number): Promise<{ submissions: Submission[]; total: number; pages: number }>;
   getRecentSubmissions(limit: number): Promise<Submission[]>;
   getStats(): Promise<{ total: number; byStatus: Record<string, number>; bySource: Record<string, number>; recentLocalities: string[] }>;
+  
+  createOcrJob(job: InsertOcrJob): Promise<OcrJob>;
+  getOcrJobs(): Promise<OcrJob[]>;
+  getOcrJob(id: string): Promise<OcrJob | undefined>;
+  updateOcrJobStatus(id: string, status: string, submissionId?: string): Promise<OcrJob | undefined>;
+  updateOcrJobWithDuplicateWarning(id: string, warning: string): Promise<OcrJob | undefined>;
+  createOcrExtractedField(field: InsertOcrExtractedField): Promise<OcrExtractedField>;
+  getOcrExtractedFields(ocrJobId: string): Promise<OcrExtractedField[]>;
+  updateOcrExtractedField(id: string, data: Partial<OcrExtractedField>): Promise<OcrExtractedField | undefined>;
+  checkDuplicates(nombre: string, telefono: string, localidad: string, referencias: string): Promise<Submission[]>;
+  
+  getGoogleFormsConfig(): Promise<GoogleFormsConfig | null>;
+  saveGoogleFormsConfig(formId: string, formUrl?: string): Promise<GoogleFormsConfig>;
+  toggleGoogleFormsActive(isActive: boolean): Promise<GoogleFormsConfig | undefined>;
+  updateGoogleFormsLastSync(): Promise<void>;
+  getGoogleFormsResponses(): Promise<GoogleFormsResponse[]>;
+  saveGoogleFormsResponse(responseId: string, formId: string, rawData: string): Promise<GoogleFormsResponse>;
+  markGoogleFormsResponseProcessed(id: string, submissionId: string): Promise<void>;
+  getGoogleFormsStats(): Promise<{ totalResponses: number; processedResponses: number; pendingResponses: number; lastSyncAt: string | null }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -195,6 +224,126 @@ export class DatabaseStorage implements IStorage {
       .filter((l): l is string => l !== null);
 
     return { total, byStatus, bySource, recentLocalities };
+  }
+
+  async createOcrJob(job: InsertOcrJob): Promise<OcrJob> {
+    const [result] = await db.insert(ocrJobs).values(job).returning();
+    return result;
+  }
+
+  async getOcrJobs(): Promise<OcrJob[]> {
+    return db.select().from(ocrJobs).orderBy(desc(ocrJobs.createdAt));
+  }
+
+  async getOcrJob(id: string): Promise<OcrJob | undefined> {
+    const [job] = await db.select().from(ocrJobs).where(eq(ocrJobs.id, id));
+    return job;
+  }
+
+  async updateOcrJobStatus(id: string, status: string, submissionId?: string): Promise<OcrJob | undefined> {
+    const updateData: any = { status: status as any, updatedAt: new Date() };
+    if (submissionId) updateData.submissionId = submissionId;
+    const [updated] = await db.update(ocrJobs).set(updateData).where(eq(ocrJobs.id, id)).returning();
+    return updated;
+  }
+
+  async updateOcrJobWithDuplicateWarning(id: string, warning: string): Promise<OcrJob | undefined> {
+    const [updated] = await db.update(ocrJobs)
+      .set({ duplicateWarning: warning, updatedAt: new Date() })
+      .where(eq(ocrJobs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async createOcrExtractedField(field: InsertOcrExtractedField): Promise<OcrExtractedField> {
+    const [result] = await db.insert(ocrExtractedFields).values(field).returning();
+    return result;
+  }
+
+  async getOcrExtractedFields(ocrJobId: string): Promise<OcrExtractedField[]> {
+    return db.select().from(ocrExtractedFields).where(eq(ocrExtractedFields.ocrJobId, ocrJobId));
+  }
+
+  async updateOcrExtractedField(id: string, data: Partial<OcrExtractedField>): Promise<OcrExtractedField | undefined> {
+    const [updated] = await db.update(ocrExtractedFields).set(data).where(eq(ocrExtractedFields.id, id)).returning();
+    return updated;
+  }
+
+  async checkDuplicates(nombre: string, telefono: string, localidad: string, referencias: string): Promise<Submission[]> {
+    const conditions = [];
+    if (nombre) conditions.push(ilike(submissions.nombreApellidos, `%${nombre}%`));
+    if (telefono) conditions.push(eq(submissions.telefono, telefono));
+    if (localidad) conditions.push(ilike(submissions.localidad, `%${localidad}%`));
+    if (referencias) conditions.push(ilike(submissions.referenciasCatastrales, `%${referencias}%`));
+    
+    if (conditions.length === 0) return [];
+    
+    return db.select().from(submissions).where(or(...conditions)).limit(5);
+  }
+
+  async getGoogleFormsConfig(): Promise<GoogleFormsConfig | null> {
+    const [config] = await db.select().from(googleFormsConfig).limit(1);
+    return config || null;
+  }
+
+  async saveGoogleFormsConfig(formId: string, formUrl?: string): Promise<GoogleFormsConfig> {
+    const existing = await this.getGoogleFormsConfig();
+    if (existing) {
+      const [updated] = await db.update(googleFormsConfig)
+        .set({ formId, formUrl: formUrl || null })
+        .where(eq(googleFormsConfig.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(googleFormsConfig).values({ formId, formUrl }).returning();
+    return created;
+  }
+
+  async toggleGoogleFormsActive(isActive: boolean): Promise<GoogleFormsConfig | undefined> {
+    const config = await this.getGoogleFormsConfig();
+    if (!config) return undefined;
+    const [updated] = await db.update(googleFormsConfig)
+      .set({ isActive })
+      .where(eq(googleFormsConfig.id, config.id))
+      .returning();
+    return updated;
+  }
+
+  async updateGoogleFormsLastSync(): Promise<void> {
+    const config = await this.getGoogleFormsConfig();
+    if (config) {
+      await db.update(googleFormsConfig)
+        .set({ lastSyncAt: new Date() })
+        .where(eq(googleFormsConfig.id, config.id));
+    }
+  }
+
+  async getGoogleFormsResponses(): Promise<GoogleFormsResponse[]> {
+    return db.select().from(googleFormsResponses).orderBy(desc(googleFormsResponses.createdAt)).limit(50);
+  }
+
+  async saveGoogleFormsResponse(responseId: string, formId: string, rawData: string): Promise<GoogleFormsResponse> {
+    const [result] = await db.insert(googleFormsResponses).values({ responseId, formId, rawData }).returning();
+    return result;
+  }
+
+  async markGoogleFormsResponseProcessed(id: string, submissionId: string): Promise<void> {
+    await db.update(googleFormsResponses)
+      .set({ processedAt: new Date(), submissionId })
+      .where(eq(googleFormsResponses.id, id));
+  }
+
+  async getGoogleFormsStats(): Promise<{ totalResponses: number; processedResponses: number; pendingResponses: number; lastSyncAt: string | null }> {
+    const config = await this.getGoogleFormsConfig();
+    const [totalResult] = await db.select({ count: sql<number>`count(*)::int` }).from(googleFormsResponses);
+    const [processedResult] = await db.select({ count: sql<number>`count(*)::int` }).from(googleFormsResponses).where(sql`${googleFormsResponses.processedAt} IS NOT NULL`);
+    
+    return {
+      totalResponses: totalResult?.count || 0,
+      processedResponses: processedResult?.count || 0,
+      pendingResponses: (totalResult?.count || 0) - (processedResult?.count || 0),
+      lastSyncAt: config?.lastSyncAt?.toISOString() || null
+    };
   }
 }
 

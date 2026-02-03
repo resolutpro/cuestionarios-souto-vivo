@@ -12,6 +12,8 @@ import DashboardPage from "@/pages/dashboard";
 import SubmissionsPage from "@/pages/submissions";
 import SubmissionDetailPage from "@/pages/submission-detail";
 import NewSubmissionPage from "@/pages/new-submission";
+import OcrUploadPage from "@/pages/ocr-upload";
+import GoogleFormsPage from "@/pages/google-forms";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -53,6 +55,8 @@ function Router() {
           <Route path="/submissions" component={SubmissionsPage} />
           <Route path="/submissions/new" component={NewSubmissionPage} />
           <Route path="/submissions/:id" component={SubmissionDetailPage} />
+          <Route path="/ocr" component={OcrUploadPage} />
+          <Route path="/google-forms" component={GoogleFormsPage} />
           <Route component={NotFound} />
         </Switch>
       </AuthenticatedLayout>
