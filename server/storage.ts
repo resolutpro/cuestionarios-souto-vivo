@@ -78,6 +78,15 @@ export class DatabaseStorage implements IStorage {
     return submission;
   }
 
+  async updateSubmission(id: string, data: Partial<Submission>): Promise<Submission | undefined> {
+    const [submission] = await db
+      .update(submissions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(submissions.id, id))
+      .returning();
+    return submission;
+  }
+
   async updateSubmissionStatus(id: string, status: string, updatedBy?: string): Promise<Submission | undefined> {
     const [updated] = await db
       .update(submissions)

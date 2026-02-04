@@ -697,6 +697,26 @@ export async function registerRoutes(
     },
   );
 
+  app.patch("/api/submissions/:id", requireAuth, async (req, res) => {
+    try {
+      const id = req.params.id as string;
+      const result = insertSubmissionSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Datos inválidos", details: result.error.errors });
+      }
+
+      const submission = await storage.updateSubmission(id, result.data);
+      if (!submission) {
+        return res.status(404).json({ error: "Cuestionario no encontrado" });
+      }
+
+      return res.json(submission);
+    } catch (error) {
+      console.error("Error updating submission:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
   app.patch("/api/ocr/jobs/:id/status", requireAuth, async (req, res) => {
     try {
       const id = req.params.id as string;
