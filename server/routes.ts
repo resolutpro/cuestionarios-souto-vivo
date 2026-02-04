@@ -359,7 +359,8 @@ export async function registerRoutes(
 
   app.get("/api/submissions/:id", requireAuth, async (req, res) => {
     try {
-      const submission = await storage.getSubmission(req.params.id);
+      const id = req.params.id as string;
+      const submission = await storage.getSubmission(id);
       if (!submission) {
         return res.status(404).json({ error: "Cuestionario no encontrado" });
       }
@@ -395,13 +396,14 @@ export async function registerRoutes(
 
   app.patch("/api/submissions/:id/status", requireAuth, async (req, res) => {
     try {
+      const id = req.params.id as string;
       const { status } = req.body;
-      if (!["borrador", "enviado", "aprobado", "rechazado"].includes(status)) {
+      if (!["borrador", "enviado", "aprobado", "rechazado", "pendiente"].includes(status)) {
         return res.status(400).json({ error: "Estado inválido" });
       }
 
       const submission = await storage.updateSubmissionStatus(
-        req.params.id,
+        id,
         status,
       );
       if (!submission) {
@@ -427,11 +429,12 @@ export async function registerRoutes(
 
   app.get("/api/ocr/jobs/:id", requireAuth, async (req, res) => {
     try {
-      const job = await storage.getOcrJob(req.params.id);
+      const id = req.params.id as string;
+      const job = await storage.getOcrJob(id);
       if (!job) {
         return res.status(404).json({ error: "Trabajo OCR no encontrado" });
       }
-      const fields = await storage.getOcrExtractedFields(req.params.id);
+      const fields = await storage.getOcrExtractedFields(id);
       return res.json({ ...job, extractedFields: fields });
     } catch (error) {
       console.error("Error fetching OCR job:", error);
@@ -529,6 +532,7 @@ export async function registerRoutes(
     requireAuth,
     async (req, res) => {
       try {
+        const id = req.params.id as string;
         const result = duplicateCheckSchema.safeParse(req.body);
         if (!result.success) {
           return res
@@ -545,10 +549,10 @@ export async function registerRoutes(
         );
 
         if (duplicates.length > 0) {
-          const job = await storage.getOcrJob(req.params.id);
+          const job = await storage.getOcrJob(id);
           if (job) {
             await storage.updateOcrJobWithDuplicateWarning(
-              req.params.id,
+              id,
               `Posibles duplicados encontrados: ${duplicates.map((d) => d.nombreApellidos).join(", ")}`,
             );
           }
@@ -573,6 +577,7 @@ export async function registerRoutes(
 
   app.patch("/api/ocr/jobs/:id/status", requireAuth, async (req, res) => {
     try {
+      const id = req.params.id as string;
       const result = ocrStatusSchema.safeParse(req.body);
       if (!result.success) {
         return res
@@ -582,7 +587,7 @@ export async function registerRoutes(
 
       const { status, submissionId } = result.data;
       const job = await storage.updateOcrJobStatus(
-        req.params.id,
+        id,
         status,
         submissionId,
       );
@@ -599,6 +604,7 @@ export async function registerRoutes(
 
   app.patch("/api/ocr/fields/:id", requireAuth, async (req, res) => {
     try {
+      const id = req.params.id as string;
       const result = ocrFieldUpdateSchema.safeParse(req.body);
       if (!result.success) {
         return res
@@ -607,7 +613,7 @@ export async function registerRoutes(
       }
 
       const field = await storage.updateOcrExtractedField(
-        req.params.id,
+        id,
         result.data,
       );
       if (!field) {
