@@ -205,7 +205,34 @@ export default function OcrReviewPage() {
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
-        {/* Lado Izquierdo: Formulario de Propuesta */}
+        {/* Lado Izquierdo: Previsualización PDF */}
+        <Card className="flex flex-col min-h-0 overflow-hidden">
+          <CardHeader className="py-3 px-4 border-b">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Documento Original
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 p-0 bg-muted/30">
+            {job.fileType.includes("pdf") ? (
+              <iframe 
+                src={`${job.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
+                className="w-full h-full border-0"
+                title="Visualización PDF"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full p-4">
+                <img 
+                  src={job.fileUrl} 
+                  alt="Original" 
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Lado Derecho: Formulario de Propuesta */}
         <Card className="flex flex-col min-h-0 overflow-hidden">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -257,33 +284,6 @@ export default function OcrReviewPage() {
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Lado Derecho: Previsualización PDF */}
-        <Card className="flex flex-col min-h-0 overflow-hidden">
-          <CardHeader className="py-3 px-4 border-b">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Documento Original
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-0 bg-muted/30">
-            {job.fileType.includes("pdf") ? (
-              <iframe 
-                src={`${job.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
-                className="w-full h-full border-0"
-                title="Visualización PDF"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full p-4">
-                <img 
-                  src={job.fileUrl} 
-                  alt="Original" 
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
-                />
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
