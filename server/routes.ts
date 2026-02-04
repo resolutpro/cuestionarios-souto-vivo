@@ -46,6 +46,7 @@ const duplicateCheckSchema = z.object({
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { analyzeForm } from "./lib/document-ai";
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
@@ -435,55 +436,30 @@ export async function registerRoutes(
 
           jobs.push(job);
 
-          // Simular ejecución de OCR y generación de propuesta
-          setTimeout(async () => {
+          // Procesar con Google Cloud Document AI
+          (async () => {
             try {
-              // 1. Crear campos extraídos simulados
-              const fields = [
-                { fieldName: "nombreApellidos", proposedValue: "Juan Pérez García", confidence: 95 },
-                { fieldName: "localidad", proposedValue: "Santiago de Compostela", confidence: 88 },
-                { fieldName: "telefono", proposedValue: "600123456", confidence: 98 },
-                { fieldName: "email", proposedValue: "juan.perez@example.com", confidence: 92 },
-                { fieldName: "genero", proposedValue: "hombre", confidence: 90 },
-                { fieldName: "edad", proposedValue: "entre_35_50", confidence: 85 },
-                { fieldName: "relacionFinca", proposedValue: "propietario", confidence: 92 },
-                { fieldName: "titularidadCompartida", proposedValue: "si", confidence: 88 },
-                { fieldName: "agricultorTituloPrincipal", proposedValue: "si", confidence: 95 },
-                { fieldName: "asociacionPertenece", proposedValue: "Asociación de Vecinos Souto", confidence: 80 },
-                { fieldName: "referenciasCatastrales", proposedValue: "15078A001001230000AB", confidence: 99 },
-                { fieldName: "superficieCategoria", proposedValue: "entre_1_5ha", confidence: 90 },
-                { fieldName: "usoSuelo", proposedValue: "cultivo_activo", confidence: 85 },
-                { fieldName: "enProduccion", proposedValue: "true", confidence: 95 },
-                { fieldName: "acceso", proposedValue: "bueno", confidence: 92 },
-                { fieldName: "agua", proposedValue: "si", confidence: 95 },
-                { fieldName: "pendiente", proposedValue: "media", confidence: 88 },
-                { fieldName: "pedregosidad", proposedValue: "baja", confidence: 85 },
-                { fieldName: "gradoInteres", proposedValue: "alto", confidence: 98 },
-                { fieldName: "nivelActuacion", proposedValue: "implantacion", confidence: 90 },
-                { fieldName: "relevoGeneracional", proposedValue: "si_familiares", confidence: 85 },
-                { fieldName: "colaboracion", proposedValue: "si_agrupacion", confidence: 80 },
-                { fieldName: "minifundio", proposedValue: "si_mucho", confidence: 88 },
-                { fieldName: "cesionTierras", proposedValue: "si_contrato", confidence: 90 },
-                { fieldName: "observaciones", proposedValue: "Finca con gran potencial para castaños.", confidence: 75 },
-              ];
+              const fileContent = fs.readFileSync(path.join(process.cwd(), job.fileUrl));
+              const extractedData = await analyzeForm(fileContent, file.mimetype);
 
-              for (const field of fields) {
+              for (const [key, data] of Object.entries(extractedData)) {
                 await storage.createOcrExtractedField({
                   ocrJobId: job.id,
-                  fieldName: field.fieldName,
-                  proposedValue: field.proposedValue,
-                  confidence: field.confidence,
+                  fieldName: key,
+                  proposedValue: data.value,
+                  confidence: data.confidence,
                   isVerified: false,
                 });
               }
 
-              // 2. Actualizar estado del trabajo
+              // Actualizar estado del trabajo
               await storage.updateOcrJobStatus(job.id, "pendiente_revision");
-              console.log(`OCR Job ${job.id} procesado automáticamente.`);
+              console.log(`OCR Job ${job.id} procesado con Document AI.`);
             } catch (err) {
-              console.error(`Error en procesamiento OCR automático para ${job.id}:`, err);
+              console.error(`Error en procesamiento OCR Document AI para ${job.id}:`, err);
+              await storage.updateOcrJobStatus(job.id, "pendiente_ocr"); // Revertir o marcar error si fuera necesario
             }
-          }, 2000);
+          })();
         }
 
         return res
