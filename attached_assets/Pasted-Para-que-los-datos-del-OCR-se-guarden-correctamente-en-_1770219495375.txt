@@ -1,0 +1,89 @@
+Para que los datos del OCR se guarden correctamente en la tabla submissions y no aparezcan como null, debemos corregir la lógica de mapeo en server/routes.ts. El problema actual es que, aunque existe un objeto OCR_MAPPING, los valores extraídos por la API (que suelen ser texto libre o con variaciones) no coinciden exactamente con los valores técnicos que esperan los campos de tipo ENUM de tu base de datos (por ejemplo, "Mujer" vs "mujer").
+
+Aquí tienes los pasos para arreglarlo:
+
+1. Actualizar el Mapeo de Campos
+Debemos ampliar el objeto OCR_MAPPING en server/routes.ts para que incluya todos los campos del cuestionario físico que me has mostrado.
+
+Busca la constante OCR_MAPPING y asegúrate de que incluya estos nombres (que son los que suele detectar Document AI):
+
+TypeScript
+// En server/routes.ts
+const OCR_MAPPING: Record<string, string> = {
+  // Datos personales
+  "Nombre y apellidos": "nombreApellidos",
+  "Teléfono": "telefono",
+  "Email": "email",
+  "Localidad / Municipio": "localidad",
+  "Municipio": "localidad",
+  "Género": "genero",
+  "Edad": "edad",
+  "Relación con la finca": "relacionFinca",
+  "Titularidad compartida": "titularidadCompartida",
+  "Agricultor/a a título principal": "agricultorTituloPrincipal",
+  
+  // Características de la finca
+  "Referencia catastral": "referenciasCatastrales",
+  "Superficie": "superficieCategoria",
+  "Uso del suelo": "usoSuelo",
+  "En producción": "enProduccion",
+  "Acceso": "acceso",
+  "Agua": "agua",
+  "Pendiente": "pendiente",
+  "Pedregosidad": "pedregosidad",
+  
+  // Interés y gobernanza
+  "Grado de interés": "gradoInteres",
+  "Nivel de actuación": "nivelActuacion",
+  "Relevo generacional": "relevoGeneracional",
+  "Colaboración": "colaboracion",
+  "Minifundio": "minifundio",
+  "Cesión de tierras": "cesionTierras"
+};
+2. Corregir la función de creación automática
+En la ruta app.post("/api/ocr/upload", ...) de server/routes.ts, hay un bloque que crea la submission. Debemos mejorar la limpieza del texto para que encaje con los Enums (ej: convertir "Hombre" a "hombre").
+
+Sustituye el bucle de mapeo por este código más robusto:
+
+TypeScript
+// Dentro de app.post("/api/ocr/upload", ...) en server/routes.ts
+
+const submissionData: any = {
+  source: "ocr",
+  status: "pendiente",
+  createdBy: req.session?.user?.username,
+};
+
+for (const [key, data] of Object.entries(extractedData)) {
+  const dbField = OCR_MAPPING[key];
+  if (dbField) {
+    let value = data.value.trim();
+    
+    // Lista de campos que son ENUMS en tu shared/schema.ts
+    const enumFields = [
+      "genero", "edad", "relacionFinca", "titularidadCompartida", 
+      "agricultorTituloPrincipal", "superficieCategoria", "usoSuelo", 
+      "acceso", "agua", "pendiente", "pedregosidad", 
+      "gradoInteres", "nivelActuacion", "relevoGeneracional",
+      "colaboracion", "minifundio", "cesionTierras"
+    ];
+
+    if (enumFields.includes(dbField)) {
+      // Convertir a minúsculas y cambiar espacios por guiones bajos
+      // Ej: "Más de 50" -> "mas_50", "Sí" -> "si"
+      value = value.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar tildes
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, ""); // Limpiar caracteres raros
+    }
+
+    // Caso especial para booleanos
+    if (dbField === "enProduccion") {
+      submissionData[dbField] = value.toLowerCase().includes("si");
+    } else {
+      submissionData[dbField] = value;
+    }
+  }
+}
+
+const submission = await storage.createSubmission(submissionData);
