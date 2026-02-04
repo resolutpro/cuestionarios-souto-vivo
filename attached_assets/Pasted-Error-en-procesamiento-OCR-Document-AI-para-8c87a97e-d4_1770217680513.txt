@@ -1,0 +1,35 @@
+Error en procesamiento OCR Document AI para 8c87a97e-d4f8-4215-8e33-b731b46242ca: Error: 3 INVALID_ARGUMENT: Request contains an invalid argument.
+    at callErrorFromStatus (/home/runner/workspace/node_modules/@grpc/grpc-js/src/call.ts:84:17)
+    at Object.onReceiveStatus (/home/runner/workspace/node_modules/@grpc/grpc-js/src/client.ts:360:55)
+    at Object.onReceiveStatus (/home/runner/workspace/node_modules/@grpc/grpc-js/src/client-interceptors.ts:466:34)
+    at Object.onReceiveStatus (/home/runner/workspace/node_modules/@grpc/grpc-js/src/client-interceptors.ts:424:48)
+    at <anonymous> (/home/runner/workspace/node_modules/@grpc/grpc-js/src/resolving-call.ts:170:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+for call at
+    at ServiceClientImpl.makeUnaryRequest (/home/runner/workspace/node_modules/@grpc/grpc-js/src/client.ts:325:42)
+    at ServiceClientImpl.<anonymous> (/home/runner/workspace/node_modules/@grpc/grpc-js/src/make-client.ts:189:15)
+    at /home/runner/workspace/node_modules/@google-cloud/documentai/build/src/v1/document_processor_service_client.js:275:29
+    at /home/runner/workspace/node_modules/google-gax/build/src/normalCalls/timeout.js:44:16
+    at repeat (/home/runner/workspace/node_modules/google-gax/build/src/normalCalls/retries.js:114:25)
+    at /home/runner/workspace/node_modules/google-gax/build/src/normalCalls/retries.js:156:13
+    at OngoingCallPromise.call (/home/runner/workspace/node_modules/google-gax/build/src/call.js:70:27)
+    at NormalApiCaller.call (/home/runner/workspace/node_modules/google-gax/build/src/normalCalls/normalApiCaller.js:34:19)
+    at /home/runner/workspace/node_modules/google-gax/build/src/createApiCall.js:110:30
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 3,
+  details: 'Request contains an invalid argument.',
+  metadata: Metadata {
+    internalRepr: Map(6) {
+      'endpoint-load-metrics-bin' => [Array],
+      'grpc-server-stats-bin' => [Array],
+      'pc-high-bwd-bin' => [Array],
+      'pcx-high-bwd-bin' => [Array],
+      'google.rpc.badrequest-bin' => [Array],
+      'grpc-status-details-bin' => [Array]
+    },
+    opaqueData: Map(0) {},
+    options: {}
+  },
+  note: 'Exception occurred in retry method that was not classified as transient',
+  statusDetails: [ BadRequest { fieldViolations: [Array] } ]
+}
