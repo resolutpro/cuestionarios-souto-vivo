@@ -13,6 +13,7 @@ import SubmissionsPage from "@/pages/submissions";
 import SubmissionDetailPage from "@/pages/submission-detail";
 import NewSubmissionPage from "@/pages/new-submission";
 import OcrUploadPage from "@/pages/ocr-upload";
+import OcrReviewPage from "@/pages/ocr-review";
 import GoogleFormsPage from "@/pages/google-forms";
 import NotFound from "@/pages/not-found";
 
@@ -56,6 +57,7 @@ function Router() {
           <Route path="/submissions/new" component={NewSubmissionPage} />
           <Route path="/submissions/:id" component={SubmissionDetailPage} />
           <Route path="/ocr" component={OcrUploadPage} />
+          <Route path="/ocr/:id/review" component={OcrReviewPage} />
           <Route path="/google-forms" component={GoogleFormsPage} />
           <Route component={NotFound} />
         </Switch>
