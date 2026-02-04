@@ -93,6 +93,27 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+const OCR_MAPPING: Record<string, string> = {
+  "Nombre": "nombreApellidos",
+  "Apellidos": "nombreApellidos",
+  "Nombre y Apellidos": "nombreApellidos",
+  "Nombre y apellidos": "nombreApellidos",
+  "Teléfono": "telefono",
+  "Email": "email",
+  "Correo electrónico": "email",
+  "Localidad": "localidad",
+  "Municipio": "localidad",
+  "Referencia Catastral": "referenciasCatastrales",
+  "Referencias Catastrales": "referenciasCatastrales",
+  "Referencia catastral": "referenciasCatastrales",
+  "Género": "genero",
+  "Edad": "edad",
+  "Relación con la finca": "relacionFinca",
+  "Superficie": "superficieCategoria",
+  "Titularidad compartida": "titularidadCompartida",
+  "Uso del suelo": "usoSuelo",
+};
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
@@ -459,7 +480,30 @@ export async function registerRoutes(
 
               // Actualizar estado del trabajo
               await storage.updateOcrJobStatus(job.id, "pendiente_revision");
-              console.log(`OCR Job ${job.id} procesado con Document AI.`);
+              
+              // Mapear y crear submission automáticamente
+              const submissionData: any = {
+                source: "ocr",
+                status: "pendiente",
+                createdBy: req.session?.user?.username,
+              };
+
+              for (const [key, data] of Object.entries(extractedData)) {
+                const dbField = OCR_MAPPING[key];
+                if (dbField) {
+                  // Limpieza básica de valores para enums si es necesario
+                  let value = data.value;
+                  if (["genero", "edad", "relacionFinca", "titularidadCompartida", "agricultorTituloPrincipal", "superficieCategoria", "usoSuelo", "acceso", "agua", "pendiente", "pedregosidad", "gradoInteres", "nivelActuacion"].includes(dbField)) {
+                    value = value.toLowerCase().replace(/\s+/g, "_");
+                  }
+                  submissionData[dbField] = value;
+                }
+              }
+
+              const submission = await storage.createSubmission(submissionData);
+              await storage.updateOcrJobStatus(job.id, "pendiente_revision", submission.id);
+
+              console.log(`OCR Job ${job.id} procesado y submission ${submission.id} creada.`);
             } catch (err) {
               console.error(`Error en procesamiento OCR Document AI para ${job.id}:`, err);
               await storage.updateOcrJobStatus(job.id, "pendiente_ocr"); // Revertir o marcar error si fuera necesario

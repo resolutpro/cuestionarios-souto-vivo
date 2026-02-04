@@ -20,7 +20,7 @@ export const successionEnum = pgEnum("succession", ["si_familiares", "no_riesgo_
 export const collaborationEnum = pgEnum("collaboration", ["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"]);
 export const minifundioEnum = pgEnum("minifundio", ["si_mucho", "si_asumible", "no_adecuado"]);
 export const landTransferEnum = pgEnum("land_transfer", ["si_contrato", "si_municipio", "no"]);
-export const submissionStatusEnum = pgEnum("submission_status", ["borrador", "enviado", "aprobado", "rechazado"]);
+export const submissionStatusEnum = pgEnum("submission_status", ["borrador", "enviado", "aprobado", "rechazado", "pendiente"]);
 export const sourceEnum = pgEnum("source", ["web", "ocr", "google_forms"]);
 export const ocrStatusEnum = pgEnum("ocr_status", ["pendiente_ocr", "ocr_completado", "pendiente_revision", "aprobado", "rechazado"]);
 
@@ -203,7 +203,7 @@ export const submissionFilterSchema = z.object({
   pedregosidad: z.enum(["baja", "media", "alta"]).optional(),
   gradoInteres: z.enum(["alto", "medio", "bajo"]).optional(),
   nivelActuacion: z.enum(["solo_diagnostico", "implantacion"]).optional(),
-  status: z.enum(["borrador", "enviado", "aprobado", "rechazado"]).optional(),
+  status: z.enum(["borrador", "enviado", "aprobado", "rechazado", "pendiente"]).optional(),
   source: z.enum(["web", "ocr", "google_forms"]).optional(),
   search: z.string().optional(),
 });
