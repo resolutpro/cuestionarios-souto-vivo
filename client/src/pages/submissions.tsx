@@ -311,6 +311,131 @@ export default function SubmissionsPage() {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Relación con la Finca</label>
+                    <Select
+                      value={filters.relacionFinca || ""}
+                      onValueChange={(value) => setFilters({ ...filters, relacionFinca: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-relacion-finca">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="propietario">Propietario</SelectItem>
+                        <SelectItem value="arrendatario">Arrendatario</SelectItem>
+                        <SelectItem value="gestor">Gestor</SelectItem>
+                        <SelectItem value="otra">Otra</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Agricultor Título Principal</label>
+                    <Select
+                      value={filters.agricultorTituloPrincipal || ""}
+                      onValueChange={(value) => setFilters({ ...filters, agricultorTituloPrincipal: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-agricultor-principal">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="si">Sí</SelectItem>
+                        <SelectItem value="no_complementario">No (complementario)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Acceso</label>
+                    <Select
+                      value={filters.acceso || ""}
+                      onValueChange={(value) => setFilters({ ...filters, acceso: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-acceso">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="bueno">Bueno</SelectItem>
+                        <SelectItem value="regular">Regular</SelectItem>
+                        <SelectItem value="malo">Malo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Agua</label>
+                    <Select
+                      value={filters.agua || ""}
+                      onValueChange={(value) => setFilters({ ...filters, agua: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-agua">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="si">Sí</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                        <SelectItem value="no_se">No lo sé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Pendiente</label>
+                    <Select
+                      value={filters.pendiente || ""}
+                      onValueChange={(value) => setFilters({ ...filters, pendiente: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-pendiente">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="baja">Baja</SelectItem>
+                        <SelectItem value="media">Media</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Pedregosidad</label>
+                    <Select
+                      value={filters.pedregosidad || ""}
+                      onValueChange={(value) => setFilters({ ...filters, pedregosidad: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-pedregosidad">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="baja">Baja</SelectItem>
+                        <SelectItem value="media">Media</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nivel de Actuación</label>
+                    <Select
+                      value={filters.nivelActuacion || ""}
+                      onValueChange={(value) => setFilters({ ...filters, nivelActuacion: value as any || undefined })}
+                    >
+                      <SelectTrigger data-testid="select-nivel-actuacion">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="solo_diagnostico">Solo diagnóstico</SelectItem>
+                        <SelectItem value="implantacion">Implantación</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="flex gap-2 pt-4">
                     <Button
                       variant="outline"
