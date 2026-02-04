@@ -359,7 +359,12 @@ export async function registerRoutes(
           .json({ error: "Datos inválidos", details: result.error.errors });
       }
 
-      const submission = await storage.createSubmission(result.data);
+      const data = {
+        ...result.data,
+        status: (result.data.status === "enviado" || !result.data.status) ? "aprobado" : result.data.status
+      };
+
+      const submission = await storage.createSubmission(data as any);
       return res.status(201).json(submission);
     } catch (error) {
       console.error("Error creating submission:", error);
@@ -677,7 +682,7 @@ export async function registerRoutes(
       // Mapeo exacto de los campos del formulario a tu esquema de BD
       const submissionData = {
         source: "google_forms",
-        status: "enviado",
+        status: "aprobado",
         nombreApellidos: data.nombre,
         localidad: data.localidad,
         telefono: data.telefono,

@@ -68,7 +68,7 @@ export default function SubmissionsPage() {
     params.set("limit", limit.toString());
     if (searchTerm) params.set("search", searchTerm);
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== "") {
+      if (value !== undefined && value !== "" && value !== "all") {
         params.set(key, String(value));
       }
     });
@@ -93,7 +93,7 @@ export default function SubmissionsPage() {
     const params = new URLSearchParams();
     if (searchTerm) params.set("search", searchTerm);
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== "") {
+      if (value !== undefined && value !== "" && value !== "all") {
         params.set(key, String(value));
       }
     });
@@ -190,7 +190,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todos los estados" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="borrador">Borrador</SelectItem>
                         <SelectItem value="enviado">Enviado</SelectItem>
                         <SelectItem value="aprobado">Aprobado</SelectItem>
@@ -209,7 +209,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todas las fuentes" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
+                        <SelectItem value="all">Todas</SelectItem>
                         <SelectItem value="web">Web</SelectItem>
                         <SelectItem value="ocr">OCR</SelectItem>
                         <SelectItem value="google_forms">Google Forms</SelectItem>
@@ -227,7 +227,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="mujer">Mujer</SelectItem>
                         <SelectItem value="hombre">Hombre</SelectItem>
                         <SelectItem value="otros">Otros</SelectItem>
@@ -245,7 +245,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todas las edades" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
+                        <SelectItem value="all">Todas</SelectItem>
                         <SelectItem value="menos_35">Menos de 35 años</SelectItem>
                         <SelectItem value="entre_35_50">Entre 35 y 50 años</SelectItem>
                         <SelectItem value="mas_50">Más de 50 años</SelectItem>
@@ -263,7 +263,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="alto">Alto</SelectItem>
                         <SelectItem value="medio">Medio</SelectItem>
                         <SelectItem value="bajo">Bajo</SelectItem>
@@ -281,7 +281,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todas" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
+                        <SelectItem value="all">Todas</SelectItem>
                         <SelectItem value="menos_1ha">Menos de 1 ha</SelectItem>
                         <SelectItem value="entre_1_5ha">Entre 1 y 5 ha</SelectItem>
                         <SelectItem value="mas_5ha">Más de 5 ha</SelectItem>
@@ -301,7 +301,7 @@ export default function SubmissionsPage() {
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="cultivo_activo">Cultivo activo</SelectItem>
                         <SelectItem value="pasto">Pasto</SelectItem>
                         <SelectItem value="monte">Monte</SelectItem>
