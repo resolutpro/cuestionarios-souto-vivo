@@ -94,6 +94,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 const OCR_MAPPING: Record<string, string> = {
+  // Datos personales
   "Nombre": "nombreApellidos",
   "Apellidos": "nombreApellidos",
   "Nombre y Apellidos": "nombreApellidos",
@@ -103,15 +104,32 @@ const OCR_MAPPING: Record<string, string> = {
   "Correo electrónico": "email",
   "Localidad": "localidad",
   "Municipio": "localidad",
-  "Referencia Catastral": "referenciasCatastrales",
-  "Referencias Catastrales": "referenciasCatastrales",
-  "Referencia catastral": "referenciasCatastrales",
+  "Localidad / Municipio": "localidad",
   "Género": "genero",
   "Edad": "edad",
   "Relación con la finca": "relacionFinca",
-  "Superficie": "superficieCategoria",
   "Titularidad compartida": "titularidadCompartida",
+  "Agricultor/a a título principal": "agricultorTituloPrincipal",
+
+  // Características de la finca
+  "Referencia Catastral": "referenciasCatastrales",
+  "Referencias Catastrales": "referenciasCatastrales",
+  "Referencia catastral": "referenciasCatastrales",
+  "Superficie": "superficieCategoria",
   "Uso del suelo": "usoSuelo",
+  "En producción": "enProduccion",
+  "Acceso": "acceso",
+  "Agua": "agua",
+  "Pendiente": "pendiente",
+  "Pedregosidad": "pedregosidad",
+
+  // Interés y gobernanza
+  "Grado de interés": "gradoInteres",
+  "Nivel de actuación": "nivelActuacion",
+  "Relevo generacional": "relevoGeneracional",
+  "Colaboración": "colaboracion",
+  "Minifundio": "minifundio",
+  "Cesión de tierras": "cesionTierras"
 };
 
 export async function registerRoutes(
@@ -494,12 +512,32 @@ export async function registerRoutes(
               for (const [key, data] of Object.entries(extractedData)) {
                 const dbField = OCR_MAPPING[key];
                 if (dbField) {
-                  // Limpieza básica de valores para enums si es necesario
-                  let value = data.value;
-                  if (["genero", "edad", "relacionFinca", "titularidadCompartida", "agricultorTituloPrincipal", "superficieCategoria", "usoSuelo", "acceso", "agua", "pendiente", "pedregosidad", "gradoInteres", "nivelActuacion"].includes(dbField)) {
-                    value = value.toLowerCase().replace(/\s+/g, "_");
+                  let value = data.value.trim();
+
+                  // Lista de campos que son ENUMS en tu shared/schema.ts
+                  const enumFields = [
+                    "genero", "edad", "relacionFinca", "titularidadCompartida",
+                    "agricultorTituloPrincipal", "superficieCategoria", "usoSuelo",
+                    "acceso", "agua", "pendiente", "pedregosidad",
+                    "gradoInteres", "nivelActuacion", "relevoGeneracional",
+                    "colaboracion", "minifundio", "cesionTierras"
+                  ];
+
+                  if (enumFields.includes(dbField)) {
+                    // Convertir a minúsculas y cambiar espacios por guiones bajos
+                    // Ej: "Más de 50" -> "mas_50", "Sí" -> "si"
+                    value = value.toLowerCase()
+                      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar tildes
+                      .replace(/\s+/g, "_")
+                      .replace(/[^a-z0-9_]/g, ""); // Limpiar caracteres raros
                   }
-                  submissionData[dbField] = value;
+
+                  // Caso especial para booleanos
+                  if (dbField === "enProduccion") {
+                    submissionData[dbField] = value.toLowerCase().includes("si");
+                  } else {
+                    submissionData[dbField] = value;
+                  }
                 }
               }
 
