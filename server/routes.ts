@@ -10,6 +10,71 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+// Mapeo de campos de texto simple (Texto -> Campo BD)
+const TEXT_FIELDS_MAP: Record<string, string> = {
+  "Nombre y apellidos": "nombreApellidos",
+  "Nombre y apellidos:": "nombreApellidos",
+  "Teléfono de contacto": "telefono",
+  "Teléfono de contacto:": "telefono",
+  "Correo electrónico": "email",
+  "Correo electrónico:": "email",
+  "Localidad": "localidad",
+  "Localidad:": "localidad",
+  "Referencia catastral": "referenciasCatastrales" // Coincidencia parcial
+};
+
+// Configuración para campos duplicados que dependen del orden de aparición
+// "Baja", "Media", "Alta" aparecen primero en la sección PENDIENTE y luego en PEDREGOSIDAD
+const ORDER_DEPENDENT_FIELDS: Record<string, string[]> = {
+  "Baja": ["pendiente", "pedregosidad"],
+  "Media": ["pendiente", "pedregosidad"],
+  "Alta": ["pendiente", "pedregosidad"]
+};
+
+// Mapeo de opciones únicas (Radio buttons) que no se repiten
+const ENUM_MAPPING: Record<string, { field: string, value: string }> = {
+  // Género
+  "Mujer": { field: "genero", value: "mujer" },
+  "Hombre": { field: "genero", value: "hombre" },
+  "Otros/es": { field: "genero", value: "otros" },
+  // Edad
+  "Menos de 35 años": { field: "edad", value: "menos_35" },
+  "Entre 35 y 50 años": { field: "edad", value: "entre_35_50" },
+  "Más de 50 años": { field: "edad", value: "mas_50" },
+  // Relación
+  "Propietario/a": { field: "relacionFinca", value: "propietario" },
+  "Arrendatario/a": { field: "relacionFinca", value: "arrendatario" },
+  "Gestor/a": { field: "relacionFinca", value: "gestor" },
+  // Superficie
+  "Menos de 1 ha": { field: "superficieCategoria", value: "menos_1ha" },
+  "Entre 1 y 5 ha": { field: "superficieCategoria", value: "entre_1_5ha" },
+  "Más de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
+  // Uso suelo
+  "Cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
+  "Pasto": { field: "usoSuelo", value: "pasto" },
+  "Monte": { field: "usoSuelo", value: "monte" },
+  "Sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
+  // Acceso (Regular solo aparece aquí según el PDF)
+  "Bueno (acceso con vehículo)": { field: "acceso", value: "bueno" },
+  "Regular": { field: "acceso", value: "regular" },
+  "Malo": { field: "acceso", value: "malo" },
+  // Agua
+  "No lo sé": { field: "agua", value: "no_se" }, // Cuidado, "No lo sé" puede repetirse
+};
+
+// Listas para campos de selección múltiple (Arrays)
+const ARRAY_FIELDS_MAP: Record<string, string> = {
+  // Producción
+  "Madera": "produccionPrincipal",
+  "Leña": "produccionPrincipal",
+  "Castaña": "produccionPrincipal",
+  // Necesidades
+  "Mejora de la productividad": "necesidades",
+  "Control del matorral": "necesidades",
+  "Prevención de incendios": "necesidades",
+  // ... añade aquí el resto de opciones de los checkboxes múltiples
+};
+
 const ocrStatusSchema = z.object({
   status: z.enum([
     "pendiente_ocr",
@@ -487,67 +552,86 @@ export async function registerRoutes(
           (async () => {
             try {
               const fileContent = fs.readFileSync(path.join(process.cwd(), job.fileUrl));
-              const extractedData = await analyzeForm(fileContent, file.mimetype);
+              // 1. Obtenemos la lista ordenada
+              const extractedFieldsList = await analyzeForm(fileContent, file.mimetype);
 
-              for (const [key, data] of Object.entries(extractedData)) {
-                await storage.createOcrExtractedField({
-                  ocrJobId: job.id,
-                  fieldName: key,
-                  proposedValue: data.value,
-                  confidence: data.confidence,
-                  isVerified: false,
-                });
-              }
-
-              // Actualizar estado del trabajo
-              await storage.updateOcrJobStatus(job.id, "pendiente_revision");
-              
-              // Mapear y crear submission automáticamente
+              // Inicializar datos del submission
               const submissionData: any = {
                 source: "ocr",
                 status: "pendiente",
                 createdBy: req.session?.user?.username,
+                necesidades: [],
+                produccionPrincipal: [],
+                formacion: [],
+                gobernanzaComunidad: [],
+                tipoFinca: []
               };
 
-              for (const [key, data] of Object.entries(extractedData)) {
-                const dbField = OCR_MAPPING[key];
-                if (dbField) {
-                  let value = data.value.trim();
+              // Contadores para campos repetidos (ej: Media)
+              const fieldCounters: Record<string, number> = {};
 
-                  // Lista de campos que son ENUMS en tu shared/schema.ts
-                  const enumFields = [
-                    "genero", "edad", "relacionFinca", "titularidadCompartida",
-                    "agricultorTituloPrincipal", "superficieCategoria", "usoSuelo",
-                    "acceso", "agua", "pendiente", "pedregosidad",
-                    "gradoInteres", "nivelActuacion", "relevoGeneracional",
-                    "colaboracion", "minifundio", "cesionTierras"
-                  ];
+              // 2. Recorremos la lista EN ORDEN
+              for (const item of extractedFieldsList) {
+                const cleanKey = item.key.trim();
+                const cleanValue = item.value.trim();
 
-                  if (enumFields.includes(dbField)) {
-                    // Convertir a minúsculas y cambiar espacios por guiones bajos
-                    // Ej: "Más de 50" -> "mas_50", "Sí" -> "si"
-                    value = value.toLowerCase()
-                      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar tildes
-                      .replace(/\s+/g, "_")
-                      .replace(/[^a-z0-9_]/g, ""); // Limpiar caracteres raros
+                // Guardar log para depuración
+                await storage.createOcrExtractedField({
+                  ocrJobId: job.id,
+                  fieldName: cleanKey,
+                  proposedValue: cleanValue,
+                  confidence: item.confidence,
+                  isVerified: false,
+                });
+
+                // A) Campos de Texto (Nombre, Email...) - No miramos si está checkeado, cogemos el valor
+                let isTextField = false;
+                for (const [textKey, dbField] of Object.entries(TEXT_FIELDS_MAP)) {
+                  if (cleanKey.includes(textKey)) { // Coincidencia flexible
+                    submissionData[dbField] = cleanValue;
+                    isTextField = true;
+                    break;
                   }
+                }
+                if (isTextField) continue;
 
-                  // Caso especial para booleanos
-                  if (dbField === "enProduccion") {
-                    submissionData[dbField] = value.toLowerCase().includes("si");
-                  } else {
-                    submissionData[dbField] = value;
+                // B) Checkboxes y Radio Buttons
+                // Detectar si está marcado (☑, X, Si, Selected...)
+                const isChecked = cleanValue.includes("☑") || cleanValue.toLowerCase() === "si" || cleanValue.toUpperCase() === "X";
+
+                if (isChecked) {
+                  // Manejo de ORDEN (Pendiente vs Pedregosidad)
+                  if (ORDER_DEPENDENT_FIELDS[cleanKey]) {
+                    fieldCounters[cleanKey] = (fieldCounters[cleanKey] || 0) + 1;
+                    const index = fieldCounters[cleanKey] - 1;
+                    const targetField = ORDER_DEPENDENT_FIELDS[cleanKey][index];
+                    
+                    if (targetField) {
+                      submissionData[targetField] = cleanKey.toLowerCase(); // "media", "alta"...
+                    }
+                  } 
+                  // Mapeo directo (Género, Edad...)
+                  else if (ENUM_MAPPING[cleanKey]) {
+                    const { field, value } = ENUM_MAPPING[cleanKey];
+                    submissionData[field] = value;
+                  }
+                  // Arrays (Producción, Necesidades...)
+                  else if (ARRAY_FIELDS_MAP[cleanKey]) {
+                    const arrayField = ARRAY_FIELDS_MAP[cleanKey];
+                    if (submissionData[arrayField]) {
+                      submissionData[arrayField].push(cleanKey);
+                    }
                   }
                 }
               }
 
+              // Crear la submission con los datos procesados
               const submission = await storage.createSubmission(submissionData);
               await storage.updateOcrJobStatus(job.id, "pendiente_revision", submission.id);
 
-              console.log(`OCR Job ${job.id} procesado y submission ${submission.id} creada.`);
             } catch (err) {
-              console.error(`Error en procesamiento OCR Document AI para ${job.id}:`, err);
-              await storage.updateOcrJobStatus(job.id, "pendiente_ocr"); // Revertir o marcar error si fuera necesario
+              console.error(`Error en procesamiento OCR para ${job.id}:`, err);
+              await storage.updateOcrJobStatus(job.id, "pendiente_ocr");
             }
           })();
         }
