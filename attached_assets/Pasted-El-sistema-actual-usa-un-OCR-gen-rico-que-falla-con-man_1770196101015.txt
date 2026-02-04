@@ -1,0 +1,81 @@
+El sistema actual usa un OCR genérico que falla con manuscritos y casillas (checkboxes). Vamos a sustituirlo por Google Cloud Document AI, específicamente el procesador Form Parser, que está diseñado para detectar marcas visuales y caligrafía.
+
+1. Requisitos Previos
+Instalar la librería oficial: npm install @google-cloud/documentai
+
+Añadir el archivo google-key.json (Service Account) a la raíz del proyecto.
+
+IMPORTANTE: Asegurarse de que google-key.json esté en el .gitignore.
+
+2. Variables de Entorno (.env)
+Necesitamos configurar estas variables para no "hardcodear" IDs:
+
+Fragmento de código
+GOOGLE_PROJECT_ID=tu-proyecto-id
+GOOGLE_LOCATION=eu  # o 'us'
+GOOGLE_PROCESSOR_ID=tu-processor-id-de-form-parser
+GOOGLE_APPLICATION_CREDENTIALS=./google-key.json
+3. Creación de la Utilidad de Procesamiento
+Sugiero crear un archivo server/lib/document-ai.ts para encapsular la lógica de Google:
+
+TypeScript
+import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
+
+const client = new DocumentProcessorServiceClient();
+
+export async function analyzeForm(fileBuffer: Buffer, mimeType: string) {
+  const name = `projects/${process.env.GOOGLE_PROJECT_ID}/locations/${process.env.GOOGLE_LOCATION}/processors/${process.env.GOOGLE_PROCESSOR_ID}`;
+
+  const [result] = await client.processDocument({
+    name,
+    rawDocument: {
+      content: fileBuffer.toString('base64'),
+      mimeType: mimeType,
+    },
+  });
+
+  const { document } = result;
+  const fields: Record<string, any> = {};
+
+  if (document?.pages) {
+    for (const page of document.pages) {
+      // 1. Extraer campos de formulario (Key-Value pairs)
+      for (const field of page.formFields || []) {
+        const key = field.fieldName?.textAnchor?.content?.trim().replace(/\n/g, ' ');
+        const value = field.fieldValue?.textAnchor?.content?.trim().replace(/\n/g, ' ');
+        if (key) fields[key] = value;
+      }
+
+      // 2. Extraer Checkboxes (Visual Elements)
+      // Google detecta si están "filled" o "unfilled"
+      for (const visualElement of page.visualElements || []) {
+        if (visualElement.type === 'checkbox') {
+          // Aquí se requiere lógica de proximidad o usar el objeto 'formFields' 
+          // que ya suele incluir el estado del checkbox si está bien etiquetado.
+        }
+      }
+    }
+  }
+  return fields;
+}
+4. Cambios en server/routes.ts
+En el endpoint donde se gestiona la subida (/api/ocr/upload), hay que realizar estos cambios:
+
+Sustituir la lógica de OCR actual: En lugar de llamar a Tesseract o procesar texto plano, llamar a analyzeForm.
+
+Mapeo de Campos: Como Document AI devuelve nombres de campos basados en lo que lee (ej: "Nombre y Apellidos"), hay que crear un pequeño mapa para guardarlo en la tabla ocr_extracted_fields.
+
+TypeScript
+// Ejemplo de integración en el route handler
+const extractedData = await analyzeForm(req.file.buffer, req.file.mimetype);
+
+// Guardar en la base de datos (usando el esquema actual)
+for (const [key, value] of Object.entries(extractedData)) {
+  await storage.createOCRExtractedField({
+    jobId: newJob.id,
+    fieldName: key,
+    fieldValue: value?.toString() || "",
+    confidence: "0.95", // Google da confianza por campo si se necesita
+    isHandwritten: true
+  });
+}
