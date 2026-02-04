@@ -1,7 +1,9 @@
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 
-// The client will automatically use GOOGLE_APPLICATION_CREDENTIALS from env
-const client = new DocumentProcessorServiceClient();
+// El endpoint debe coincidir con la región del procesador (eu para Europa)
+const client = new DocumentProcessorServiceClient({
+  apiEndpoint: 'eu-documentai.googleapis.com',
+});
 
 export async function analyzeForm(fileBuffer: Buffer, mimeType: string) {
   const name = `projects/${process.env.GOOGLE_PROJECT_ID}/locations/${process.env.GOOGLE_LOCATION}/processors/${process.env.GOOGLE_PROCESSOR_ID}`;
