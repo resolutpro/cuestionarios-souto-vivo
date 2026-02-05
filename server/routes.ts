@@ -20,30 +20,32 @@ const TEXT_FIELDS_MAP: Record<string, string> = {
   "referencia catastral": "referenciasCatastrales"
 };
 
-// 2. CAMPOS DEPENDIENTES DEL ORDEN (Contadores)
-const ORDER_DEPENDENT_FIELDS: Record<string, { field: string, value: any }[]> = {
-  "si": [
-    { field: "titularidadCompartida", value: "si" },
-    { field: "agricultorTituloPrincipal", value: "si" },
-    { field: "agua", value: "si" }
-  ],
-  "no": [
-    { field: "titularidadCompartida", value: "no" },
-    { field: "agricultorTituloPrincipal", value: "no_complementario" },
-    { field: "agua", value: "no" }
-  ],
-  "baja": [
-    { field: "pendiente", value: "baja" },
-    { field: "pedregosidad", value: "baja" }
-  ],
-  "media": [
-    { field: "pendiente", value: "media" },
-    { field: "pedregosidad", value: "media" }
-  ],
-  "alta": [
-    { field: "pendiente", value: "alta" },
-    { field: "pedregosidad", value: "alta" }
-  ]
+// 2. CAMPOS DEPENDIENTES DEL ORDEN (Contadores por página)
+const ORDER_DEPENDENT_MAPPING: Record<number, Record<string, { field: string, value: any }[]>> = {
+  1: {
+    "si": [
+      { field: "titularidadCompartida", value: "si" },
+      { field: "agricultorTituloPrincipal", value: "si" }
+    ],
+    "no": [
+      { field: "titularidadCompartida", value: "no" },
+      { field: "agricultorTituloPrincipal", value: "no_complementario" }
+    ],
+    "baja": [{ field: "pendiente", value: "baja" }],
+    "media": [{ field: "pendiente", value: "media" }],
+    "alta": [{ field: "pendiente", value: "alta" }]
+  },
+  2: {
+    "si": [
+      { field: "agua", value: "si" }
+    ],
+    "no": [
+      { field: "agua", value: "no" }
+    ],
+    "baja": [{ field: "pedregosidad", value: "baja" }],
+    "media": [{ field: "pedregosidad", value: "media" }],
+    "alta": [{ field: "pedregosidad", value: "alta" }]
+  }
 };
 
 // 3. MAPEO DE ENUMS (Radio buttons únicos con nombres largos)
@@ -132,11 +134,10 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     gobernanzaComunidad: []
   };
 
-  const occurrenceCounters: Record<string, number> = {
-    "si": 0, "no": 0, "baja": 0, "media": 0, "alta": 0
-  };
+  // Contadores con ámbito de página
+  const pageCounters: Record<number, Record<string, number>> = {};
 
-  // Pre-normalize mapping keys for faster lookup and better matching
+  // Pre-normalize mapping keys
   const normalizedTextFields = Object.fromEntries(
     Object.entries(TEXT_FIELDS_MAP).map(([k, v]) => [normalizeKey(k), v])
   );
@@ -151,8 +152,14 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     const rawName = field.key || field.fieldName || field.field_name || "";
     const rawValue = (field.value || field.proposedValue || field.proposed_value || "").toString();
     const normalizedName = normalizeKey(rawName);
+    const pageNumber = field.pageNumber || 1;
 
     if (!normalizedName) continue;
+
+    // Inicializar contadores para la página si no existen
+    if (!pageCounters[pageNumber]) {
+      pageCounters[pageNumber] = { "si": 0, "no": 0, "baja": 0, "media": 0, "alta": 0 };
+    }
 
     const isChecked = rawValue.includes("☑") || 
                      rawValue.toLowerCase() === "true" || 
@@ -160,35 +167,35 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
                      rawValue.toLowerCase() === "selected" ||
                      rawValue === "checked";
 
-    // 1. Order dependent fields (Radio buttons like "Si/No" that repeat)
-    if (ORDER_DEPENDENT_FIELDS[normalizedName]) {
-      const index = occurrenceCounters[normalizedName];
-      const mappingList = ORDER_DEPENDENT_FIELDS[normalizedName];
+    // 1. Order dependent fields (Page-Scoped Mapping)
+    const pageMapping = ORDER_DEPENDENT_MAPPING[pageNumber];
+    if (pageMapping && pageMapping[normalizedName]) {
+      const index = pageCounters[pageNumber][normalizedName];
+      const mappingList = pageMapping[normalizedName];
 
       if (index < mappingList.length) {
         const mapping = mappingList[index];
         if (isChecked) {
           submission[mapping.field] = mapping.value;
         }
-        occurrenceCounters[normalizedName]++;
+        pageCounters[pageNumber][normalizedName]++;
       }
       continue;
     }
 
-    // 2. Exact match or includes in normalized text fields (Name, Email, etc.)
+    // 2. Text fields
     const textMatchKey = Object.keys(normalizedTextFields).find(k => 
       normalizedName === k || normalizedName.includes(k) || k.includes(normalizedName)
     );
     if (textMatchKey) {
       const dbField = normalizedTextFields[textMatchKey];
-      // Only set if not already set or if it's a more complete value
       if (!submission[dbField] || rawValue.length > submission[dbField].length) {
         submission[dbField] = rawValue;
       }
       continue;
     }
 
-    // 3. Enum Mapping (Radio buttons with specific text)
+    // 3. Enum Mapping
     const enumMatchKey = Object.keys(normalizedEnumMapping).find(k => 
       normalizedName === k || normalizedName.includes(k)
     );
@@ -198,7 +205,7 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
       continue;
     }
 
-    // 4. Array Mapping (Checkboxes)
+    // 4. Array Mapping
     const arrayMatchKey = Object.keys(normalizedArrayMapping).find(k => 
       normalizedName === k || normalizedName.includes(k) || k.includes(normalizedName)
     );
