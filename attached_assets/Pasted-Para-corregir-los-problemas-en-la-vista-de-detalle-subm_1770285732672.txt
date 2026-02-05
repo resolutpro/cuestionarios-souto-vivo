@@ -1,0 +1,154 @@
+Para corregir los problemas en la vista de detalle (submission-detail.tsx) y asegurar que los campos de la Sección 7 se muestren correctamente (incluyendo los checkboxes que no parecen marcarse), debes realizar los siguientes cambios:
+
+1. Completar la Sección 7 en submission-detail.tsx
+Actualmente, tu código solo muestra los valores seleccionados, pero no la estructura completa de opciones que solicitas. Para que la interfaz refleje fielmente el cuestionario (incluyendo visualmente qué opciones están marcadas), debes actualizar el componente.
+
+Sustituye el bloque del Card de la Sección 7 y el de Observaciones por el siguiente código. He añadido la lógica para que los campos que funcionan como "Checkboxes" o "Radios" se visualicen con un indicador de estado:
+
+TypeScript
+// - Archivo: client/src/pages/submission-detail.tsx
+
+<Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Users className="h-5 w-5" />
+      7. Dimensión Social y Gestión Colectiva
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-6">
+    {/* Colaboración y Gestión Conjunta */}
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-primary">Modelos de colaboración y gestión comunitaria</p>
+      <div className="space-y-2">
+        <p className="text-sm font-medium">¿Estaría dispuesto/a a participar en gestión conjunta?</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+          {["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"].map((opcion) => (
+            <div key={opcion} className="flex items-center gap-2 text-sm">
+              {submission.colaboracion === opcion ? 
+                <CheckCircle className="h-4 w-4 text-green-600" /> : 
+                <div className="h-4 w-4 rounded-full border border-muted" />
+              }
+              <span className={submission.colaboracion === opcion ? "font-medium" : "text-muted-foreground"}>
+                {labelMappings[opcion]}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <Separator />
+
+    {/* Minifundio / Obstáculo */}
+    <div className="space-y-2">
+      <p className="text-sm font-medium">¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 ml-2">
+        {["si_mucho", "si_asumible", "no_adecuado"].map((opcion) => (
+          <div key={opcion} className="flex items-center gap-2 text-sm">
+            {submission.minifundio === opcion ? 
+              <CheckCircle className="h-4 w-4 text-green-600" /> : 
+              <div className="h-4 w-4 rounded-full border border-muted" />
+            }
+            <span className={submission.minifundio === opcion ? "font-medium" : "text-muted-foreground"}>
+              {labelMappings[opcion]}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <Separator />
+
+    {/* Cesión de Tierras */}
+    <div className="space-y-2">
+      <p className="text-sm font-medium">¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?</p>
+      <div className="grid grid-cols-1 gap-2 ml-2">
+        {["si_contrato", "si_municipio", "no"].map((opcion) => (
+          <div key={opcion} className="flex items-center gap-2 text-sm">
+            {submission.cesionTierras === opcion ? 
+              <CheckCircle className="h-4 w-4 text-green-600" /> : 
+              <div className="h-4 w-4 rounded-full border border-muted" />
+            }
+            <span className={submission.cesionTierras === opcion ? "font-medium" : "text-muted-foreground"}>
+              {labelMappings[opcion]}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <Separator />
+
+    {/* Gobernanza y Comunidad (Checkboxes Multiselección) */}
+    <div className="space-y-2">
+      <p className="text-sm font-medium">¿Cómo cree que el proyecto podría mejorar la comunidad?</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+        {[
+          "creacion_empleo_local", 
+          "recuperar_tierras_abandonadas", 
+          "formacion_capacitacion", 
+          "cooperativas_gestion_colectiva", 
+          "turismo_rural"
+        ].map((opcion) => {
+          const isSelected = submission.gobernanzaComunidad?.includes(opcion);
+          return (
+            <div key={opcion} className="flex items-center gap-2 text-sm">
+              {isSelected ? 
+                <CheckCircle className="h-4 w-4 text-blue-600" /> : 
+                <div className="h-4 w-4 rounded border border-muted" />
+              }
+              <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
+                {labelMappings[opcion]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {submission.gobernanzaOtro && (
+        <div className="mt-2 ml-2 p-2 bg-muted/30 rounded-md">
+          <p className="text-xs text-muted-foreground uppercase font-bold">Otras sugerencias / Especificar:</p>
+          <p className="text-sm">{submission.gobernanzaOtro}</p>
+        </div>
+      )}
+    </div>
+  </CardContent>
+</Card>
+
+{/* Sección de Observaciones Finales corregida */}
+<Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <FileText className="h-5 w-5" />
+      Observaciones finales
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p className="whitespace-pre-wrap text-sm italic">
+      {submission.observaciones || "No se han añadido observaciones finales."}
+    </p>
+  </CardContent>
+</Card>
+2. Por qué no se "tachan" o marcan los checkboxes
+El problema suele ser la comparación de tipos o la estructura de los datos que vienen de la base de datos (PostgreSQL):
+
+Arrays en Postgres: En schema.ts, el campo gobernanzaComunidad es un array (text().array()). Al recuperarlo con Drizzle/Zod, asegúrate de que siempre sea un array. En el código de arriba he añadido submission.gobernanzaComunidad?.includes(opcion) para manejar valores nulos.
+
+En la interfaz de revisión (OCR Review): Si te refieres a la página ocr-review.tsx (no proporcionaste el código completo de esa pero sí el de document-ai.ts), el problema es que Document AI extrae texto plano. Si el OCR devuelve "X" o "Marcado", debes mapear eso a un booleano o al valor del enum correspondiente antes de guardarlo en submissions.
+
+3. Recomendación adicional para los Enums
+Asegúrate de que los valores que llegan de la base de datos coinciden exactamente con las claves de labelMappings. Por ejemplo, si en la BD se guarda "no" (para cesión de tierras) y en el mapeo buscas "no_interes_ceder", no funcionará.
+
+En tu labelMappings tienes:
+
+no_interes_ceder: "No, no tengo interés en ceder la gestión"
+
+Pero en tu schema.ts el enum es:
+
+landTransferEnum = ["si_contrato", "si_municipio", "no"]
+
+Debes corregir labelMappings para que coincida con el Schema:
+
+TypeScript
+// Cambia esto en labelMappings:
+no: "No, no tengo interés en ceder la gestión", 
+Esto arreglará que el texto se muestre correctamente en lugar de mostrar solo la palabra "no".
