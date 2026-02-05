@@ -715,6 +715,8 @@ export async function registerRoutes(
                   fieldName: item.key.replace(/[:.]/g, "").trim(),
                   proposedValue: item.value.trim(),
                   confidence: item.confidence,
+                  pageNumber: item.pageNumber,
+                  coordinates: JSON.stringify(item.normalizedVertices),
                   isVerified: false,
                 });
               }
