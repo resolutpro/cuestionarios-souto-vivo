@@ -30,6 +30,7 @@ const statusConfig = {
   enviado: { color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", icon: Clock },
   aprobado: { color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle },
   rechazado: { color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", icon: XCircle },
+  pendiente: { color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400", icon: Clock },
 };
 
 const labelMappings: Record<string, string> = {
@@ -341,7 +342,6 @@ export default function SubmissionDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -349,9 +349,15 @@ export default function SubmissionDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem label="¿Estaría dispuesto/a a participar en gestión conjunta?" value={submission.colaboracion} />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-primary">Modelos de colaboración y gestión comunitaria</p>
+              <InfoItem label="¿Estaría dispuesto/a a participar en gestión conjunta?" value={submission.colaboracion} />
+            </div>
+            <Separator />
             <InfoItem label="¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?" value={submission.minifundio} />
+            <Separator />
             <InfoItem label="¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?" value={submission.cesionTierras} />
+            <Separator />
             <ArrayInfo label="¿Cómo cree que el proyecto podría mejorar la comunidad?" values={submission.gobernanzaComunidad} />
             {submission.gobernanzaOtro && (
               <InfoItem label="Otras sugerencias de gobernanza" value={submission.gobernanzaOtro} />
