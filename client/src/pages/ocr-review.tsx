@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { OcrJob, Submission } from "@shared/schema";
@@ -209,26 +210,35 @@ export default function OcrReviewPage() {
               Valida los datos siguiendo el orden del documento original.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-4 space-y-6">
-            <div className="space-y-6">
+          <CardContent className="flex-1 overflow-y-auto p-4 space-y-8">
+            <div className="space-y-8">
               {/* Sección 1: Datos Personales */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-primary font-semibold">
-                  <User className="h-5 w-5" />
-                  <h3>1. DATOS PERSONALES</h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">1. Datos de la Persona Interesada</h3>
+                    <p className="text-sm text-muted-foreground">Información de contacto y perfil del solicitante</p>
+                  </div>
                 </div>
-                <div className="grid gap-4">
-                  {renderFieldInput("Nombre y apellidos", "nombreApellidos")}
-                  {renderFieldInput("Teléfono de contacto", "telefono")}
-                  {renderFieldInput("Correo electrónico", "email")}
+                <div className="grid gap-4 pl-12">
+                  {renderFieldInput("Nombre y apellidos *", "nombreApellidos")}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFieldInput("Teléfono de contacto", "telefono")}
+                    {renderFieldInput("Correo electrónico", "email")}
+                  </div>
                   {renderFieldInput("Localidad", "localidad")}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {renderFieldInput("Género", "genero", "enum", ["mujer", "hombre", "otros"])}
                     {renderFieldInput("Edad", "edad", "enum", ["menos_35", "entre_35_50", "mas_50"])}
                   </div>
                   {renderFieldInput("Relación con la finca", "relacionFinca", "enum", ["propietario", "arrendatario", "gestor", "otra"])}
-                  {renderFieldInput("Titularidad compartida", "titularidadCompartida", "enum", ["si", "no"])}
-                  {renderFieldInput("Agricultor/a a título principal", "agricultorTituloPrincipal", "enum", ["si", "no_complementario"])}
+                  {formData.relacionFinca === "otra" && renderFieldInput("Especificar otra relación", "relacionFincaOtra")}
+                  {formData.relacionFinca === "propietario" && renderFieldInput("¿La finca está bajo régimen de Titularidad Compartida?", "titularidadCompartida", "enum", ["si", "no"])}
+                  {renderFieldInput("¿Es usted agricultor/a a título principal?", "agricultorTituloPrincipal", "enum", ["si", "no_complementario"])}
+                  {renderFieldInput("¿Pertenece a alguna asociación?", "asociacionPertenece")}
                 </div>
               </div>
 
@@ -236,22 +246,36 @@ export default function OcrReviewPage() {
 
               {/* Sección 2: Información de la Finca */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-primary font-semibold">
-                  <TreePine className="h-5 w-5" />
-                  <h3>2. INFORMACIÓN DE LA FINCA</h3>
-                </div>
-                <div className="grid gap-4">
-                  {renderFieldInput("Referencia catastral", "referenciasCatastrales")}
-                  {renderFieldInput("Superficie", "superficieCategoria", "enum", ["menos_1ha", "entre_1_5ha", "mas_5ha", "otra", "no_se"])}
-                  {renderFieldInput("Uso actual del suelo", "usoSuelo", "enum", ["cultivo_activo", "pasto", "monte", "sin_uso", "otro"])}
-                  {renderFieldInput("En producción", "enProduccion", "boolean")}
-                  <div className="grid grid-cols-2 gap-4">
-                    {renderFieldInput("Acceso", "acceso", "enum", ["bueno", "regular", "malo"])}
-                    {renderFieldInput("Agua", "agua", "enum", ["si", "no", "no_se"])}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <TreePine className="h-5 w-5" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {renderFieldInput("Pendiente", "pendiente", "enum", ["baja", "media", "alta"])}
-                    {renderFieldInput("Pedregosidad", "pedregosidad", "enum", ["baja", "media", "alta"])}
+                  <div>
+                    <h3 className="text-lg font-bold">2. Información Básica de la Finca</h3>
+                    <p className="text-sm text-muted-foreground">Datos catastrales y características de la finca</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 pl-12">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Referencias catastrales o polígono y parcela</Label>
+                    <Textarea 
+                      value={(formData.referenciasCatastrales as string) || ""} 
+                      onChange={(e) => handleFieldChange("referenciasCatastrales", e.target.value)}
+                      placeholder="Introduzca las referencias catastrales..."
+                    />
+                  </div>
+                  {renderFieldInput("Superficie aproximada disponible", "superficieCategoria", "enum", ["menos_1ha", "entre_1_5ha", "mas_5ha", "otra", "no_se"])}
+                  {formData.superficieCategoria === "otra" && renderFieldInput("Especificar superficie", "superficieOtra")}
+                  {renderFieldInput("Uso actual del suelo", "usoSuelo", "enum", ["cultivo_activo", "pasto", "monte", "sin_uso", "otro"])}
+                  {formData.usoSuelo === "otro" && renderFieldInput("Especificar otro uso", "usoSueloOtro")}
+                  {renderFieldInput("¿Está la finca actualmente en producción?", "enProduccion", "boolean")}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFieldInput("Acceso a la finca", "acceso", "enum", ["bueno", "regular", "malo"])}
+                    {renderFieldInput("Disponibilidad de agua", "agua", "enum", ["si", "no", "no_se"])}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFieldInput("Grado de pendiente", "pendiente", "enum", ["baja", "media", "alta"])}
+                    {renderFieldInput("Grado de pedregosidad", "pedregosidad", "enum", ["baja", "media", "alta"])}
                   </div>
                 </div>
               </div>
@@ -260,14 +284,19 @@ export default function OcrReviewPage() {
 
               {/* Sección 3: Necesidades y Objetivos */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-primary font-semibold">
-                  <Target className="h-5 w-5" />
-                  <h3>3. NECESIDADES Y OBJETIVOS</h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <Target className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">3. Necesidades y Objetivos</h3>
+                    <p className="text-sm text-muted-foreground">Intereses y planes para la explotación</p>
+                  </div>
                 </div>
-                <div className="grid gap-4">
-                  {renderFieldInput("Grado de interés", "gradoInteres", "enum", ["alto", "medio", "bajo"])}
-                  {renderFieldInput("Nivel de actuación", "nivelActuacion", "enum", ["solo_diagnostico", "implantacion"])}
-                  {renderFieldInput("Relevo generacional", "relevoGeneracional", "enum", ["si_familiares", "no_riesgo_abandono", "buscando"])}
+                <div className="grid gap-4 pl-12">
+                  {renderFieldInput("Grado de interés en el modelo de gestión", "gradoInteres", "enum", ["alto", "medio", "bajo"])}
+                  {renderFieldInput("Nivel de actuación deseado", "nivelActuacion", "enum", ["solo_diagnostico", "implantacion"])}
+                  {renderFieldInput("Situación respecto al relevo generacional", "relevoGeneracional", "enum", ["si_familiares", "no_riesgo_abandono", "buscando"])}
                 </div>
               </div>
 
@@ -275,14 +304,27 @@ export default function OcrReviewPage() {
 
               {/* Sección 4: Formación y Social */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-primary font-semibold">
-                  <GraduationCap className="h-5 w-5" />
-                  <h3>4. FORMACIÓN Y DIMENSIÓN SOCIAL</h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">4. Formación y Dimensión Social</h3>
+                    <p className="text-sm text-muted-foreground">Capacitación y visión comunitaria</p>
+                  </div>
                 </div>
-                <div className="grid gap-4">
-                  {renderFieldInput("Colaboración", "colaboracion", "enum", ["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"])}
-                  {renderFieldInput("Problema del minifundio", "minifundio", "enum", ["si_mucho", "si_asumible", "no_adecuado"])}
-                  {renderFieldInput("Cesión de tierras", "cesionTierras", "enum", ["si_contrato", "si_municipio", "no"])}
+                <div className="grid gap-4 pl-12">
+                  {renderFieldInput("Preferencia de colaboración", "colaboracion", "enum", ["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"])}
+                  {renderFieldInput("¿Considera el minifundio un problema?", "minifundio", "enum", ["si_mucho", "si_asumible", "no_adecuado"])}
+                  {renderFieldInput("¿Estaría dispuesto/a a la cesión de tierras?", "cesionTierras", "enum", ["si_contrato", "si_municipio", "no"])}
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Observaciones adicionales</Label>
+                    <Textarea 
+                      value={(formData.observaciones as string) || ""} 
+                      onChange={(e) => handleFieldChange("observaciones", e.target.value)}
+                      placeholder="Cualquier otra información relevante..."
+                    />
+                  </div>
                 </div>
               </div>
             </div>
