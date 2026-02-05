@@ -343,6 +343,45 @@ export default function OcrReviewPage() {
                 </div>
               </div>
 
+              {/* Sección 3: Condiciones de la finca */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">3. Condiciones de la finca</h3>
+                    <p className="text-sm text-muted-foreground">Infraestructura y orografía</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 pl-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFieldInput("Acceso a la finca", "acceso", "enum", [
+                      { value: "bueno", label: "Bueno (con vehículo)" },
+                      { value: "regular", label: "Regular" },
+                      { value: "malo", label: "Malo" }
+                    ])}
+                    {renderFieldInput("Disponibilidad de agua", "agua", "enum", [
+                      { value: "si", label: "Sí" },
+                      { value: "no", label: "No" },
+                      { value: "no_se", label: "No lo sé" }
+                    ])}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderFieldInput("Pendiente del terreno", "pendiente", "enum", [
+                      { value: "baja", label: "Baja" },
+                      { value: "media", label: "Media" },
+                      { value: "alta", label: "Alta" }
+                    ])}
+                    {renderFieldInput("Pedregosidad", "pedregosidad", "enum", [
+                      { value: "baja", label: "Baja" },
+                      { value: "media", label: "Media" },
+                      { value: "alta", label: "Alta" }
+                    ])}
+                  </div>
+                </div>
+              </div>
+
               <Separator />
 
               {/* Sección 4: Necesidades y Objetivos de la Finca */}
