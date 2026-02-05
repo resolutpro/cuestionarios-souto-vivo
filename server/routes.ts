@@ -113,7 +113,15 @@ const ARRAY_MAPPING: Record<string, { field: string, value: string }> = {
   "turismo rural": { field: "gobernanzaComunidad", value: "turismo_rural" }
 };
 
-const normalizeKey = (text: string) => text.trim().toLowerCase().replace(/[:.]/g, '');
+const normalizeKey = (text: string) => {
+  return text
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents/tildes
+    .replace(/[:.]/g, '')
+    .replace(/\s+/g, ' '); // Normalize spaces
+};
 
 export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> {
   const submission: Record<string, any> = {
@@ -128,17 +136,31 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     "si": 0, "no": 0, "baja": 0, "media": 0, "alta": 0
   };
 
+  // Pre-normalize mapping keys for faster lookup and better matching
+  const normalizedTextFields = Object.fromEntries(
+    Object.entries(TEXT_FIELDS_MAP).map(([k, v]) => [normalizeKey(k), v])
+  );
+  const normalizedEnumMapping = Object.fromEntries(
+    Object.entries(ENUM_MAPPING).map(([k, v]) => [normalizeKey(k), v])
+  );
+  const normalizedArrayMapping = Object.fromEntries(
+    Object.entries(ARRAY_MAPPING).map(([k, v]) => [normalizeKey(k), v])
+  );
+
   for (const field of extractedFields) {
-    const rawName = field.key || field.field_name || "";
-    const rawValue = field.value || field.proposed_value || "";
+    const rawName = field.key || field.fieldName || field.field_name || "";
+    const rawValue = (field.value || field.proposedValue || field.proposed_value || "").toString();
     const normalizedName = normalizeKey(rawName);
+
+    if (!normalizedName) continue;
 
     const isChecked = rawValue.includes("☑") || 
                      rawValue.toLowerCase() === "true" || 
                      rawValue === "1" || 
                      rawValue.toLowerCase() === "selected" ||
-                     rawValue === "Checked";
+                     rawValue === "checked";
 
+    // 1. Order dependent fields (Radio buttons like "Si/No" that repeat)
     if (ORDER_DEPENDENT_FIELDS[normalizedName]) {
       const index = occurrenceCounters[normalizedName];
       const mappingList = ORDER_DEPENDENT_FIELDS[normalizedName];
@@ -153,30 +175,38 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
       continue;
     }
 
-    const arrayMatch = Object.keys(ARRAY_MAPPING).find(key => normalizedName.includes(key));
-    if (arrayMatch) {
-      if (isChecked) {
-        const mapping = ARRAY_MAPPING[arrayMatch];
-        if (!submission[mapping.field].includes(mapping.value)) {
-          submission[mapping.field].push(mapping.value);
-        }
+    // 2. Exact match or includes in normalized text fields (Name, Email, etc.)
+    const textMatchKey = Object.keys(normalizedTextFields).find(k => 
+      normalizedName === k || normalizedName.includes(k) || k.includes(normalizedName)
+    );
+    if (textMatchKey) {
+      const dbField = normalizedTextFields[textMatchKey];
+      // Only set if not already set or if it's a more complete value
+      if (!submission[dbField] || rawValue.length > submission[dbField].length) {
+        submission[dbField] = rawValue;
       }
       continue;
     }
 
-    const enumMatch = Object.keys(ENUM_MAPPING).find(key => normalizedName.includes(key));
-    if (enumMatch) {
-      if (isChecked) {
-        const mapping = ENUM_MAPPING[enumMatch];
-        submission[mapping.field] = mapping.value;
-      }
+    // 3. Enum Mapping (Radio buttons with specific text)
+    const enumMatchKey = Object.keys(normalizedEnumMapping).find(k => 
+      normalizedName === k || normalizedName.includes(k)
+    );
+    if (enumMatchKey && isChecked) {
+      const mapping = normalizedEnumMapping[enumMatchKey];
+      submission[mapping.field] = mapping.value;
       continue;
     }
 
-    const textMatch = Object.keys(TEXT_FIELDS_MAP).find(key => normalizedName.includes(normalizeKey(key)));
-    if (textMatch) {
-      const dbField = TEXT_FIELDS_MAP[textMatch];
-      submission[dbField] = rawValue;
+    // 4. Array Mapping (Checkboxes)
+    const arrayMatchKey = Object.keys(normalizedArrayMapping).find(k => 
+      normalizedName === k || normalizedName.includes(k)
+    );
+    if (arrayMatchKey && isChecked) {
+      const mapping = normalizedArrayMapping[arrayMatchKey];
+      if (!submission[mapping.field].includes(mapping.value)) {
+        submission[mapping.field].push(mapping.value);
+      }
       continue;
     }
   }
