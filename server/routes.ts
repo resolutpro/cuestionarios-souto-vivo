@@ -30,21 +30,21 @@ const ORDER_DEPENDENT_MAPPING: Record<number, Record<string, { field: string, va
     "no": [
       { field: "titularidadCompartida", value: "no" },
       { field: "agricultorTituloPrincipal", value: "no_complementario" }
-    ],
-    "baja": [{ field: "pendiente", value: "baja" }],
-    "media": [{ field: "pendiente", value: "media" }],
-    "alta": [{ field: "pendiente", value: "alta" }]
+    ]
   },
   2: {
-    "si": [
-      { field: "agua", value: "si" }
-    ],
-    "no": [
-      { field: "agua", value: "no" }
-    ],
-    "baja": [{ field: "pedregosidad", value: "baja" }],
-    "media": [{ field: "pedregosidad", value: "media" }],
-    "alta": [{ field: "pedregosidad", value: "alta" }]
+    "si": [{ field: "enProduccion", value: true }],
+    "no": [{ field: "enProduccion", value: false }]
+  },
+  3: {
+    "alto": [{ field: "gradoInteres", value: "alto" }],
+    "medio": [{ field: "gradoInteres", value: "medio" }],
+    "bajo": [{ field: "gradoInteres", value: "bajo" }]
+  },
+  5: {
+    "si mucho": [{ field: "minifundio", value: "si_mucho" }],
+    "si aunque es asumible": [{ field: "minifundio", value: "si_asumible" }],
+    "no el tamaño es adecuado": [{ field: "minifundio", value: "no_adecuado" }]
   }
 };
 
