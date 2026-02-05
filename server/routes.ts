@@ -291,11 +291,13 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     // Fallback simple para consentimientos (Pág 6)
     if (pageNumber === 6 && isChecked) {
       if (normalizedName.includes("consiento el tratamiento de mis datos personales") || 
-          normalizedName.includes("consiento el tratamiento de mis datos")) {
+          normalizedName.includes("consiento el tratamiento de mis datos") ||
+          normalizedName.includes("consiento")) {
         submission.consentimientoTratamiento = true;
       }
       if (normalizedName.includes("acepto recibir comunicaciones relacionadas") || 
-          normalizedName.includes("acepto recibir comunicaciones")) {
+          normalizedName.includes("acepto recibir comunicaciones") ||
+          normalizedName.includes("acepto")) {
         submission.aceptoComunicaciones = true;
       }
     }
