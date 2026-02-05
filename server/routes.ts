@@ -671,79 +671,15 @@ export async function registerRoutes(
               submissionData.status = "pendiente";
               submissionData.createdBy = req.session?.user?.username;
 
-              // Guardar los campos extraídos para revisión manual
+              // Guardar los campos extraídos para revisión manual y depuración
               for (const item of extractedFieldsList) {
-                const cleanKey = item.key.replace(/[:.]/g, "").trim();
-                const cleanValue = item.value.trim();
-
-                await storage.createOcrExtractedField({
-                  jobId: job.id,
-                  fieldName: cleanKey,
-                  proposedValue: cleanValue,
-                  confidence: item.confidence,
-                  isVerified: false,
-                });
-              }
-
-
-              // Contadores para campos repetidos (ej: Media)
-              const fieldCounters: Record<string, number> = {};
-
-              // 2. Recorremos la lista EN ORDEN
-              for (const item of extractedFieldsList) {
-                const cleanKey = item.key.trim();
-                const cleanValue = item.value.trim();
-
-                // Guardar log para depuración
                 await storage.createOcrExtractedField({
                   ocrJobId: job.id,
-                  fieldName: cleanKey,
-                  proposedValue: cleanValue,
+                  fieldName: item.key.replace(/[:.]/g, "").trim(),
+                  proposedValue: item.value.trim(),
                   confidence: item.confidence,
                   isVerified: false,
                 });
-
-                // A) Campos de Texto (Nombre, Email...) - No miramos si está checkeado, cogemos el valor
-                let isTextField = false;
-                for (const [textKey, dbField] of Object.entries(TEXT_FIELDS_MAP)) {
-                  if (cleanKey.includes(textKey)) { // Coincidencia flexible
-                    submissionData[dbField] = cleanValue;
-                    isTextField = true;
-                    break;
-                  }
-                }
-                if (isTextField) continue;
-
-                // B) Checkboxes y Radio Buttons
-                // Detectar si está marcado (☑, X, Si, Selected...)
-                const isChecked = cleanValue.includes("☑") || cleanValue.toLowerCase() === "si" || cleanValue.toUpperCase() === "X";
-
-                if (isChecked) {
-                  // Manejo de ORDEN (Para Sí/No y Baja/Media/Alta)
-                  if (ORDER_DEPENDENT_FIELDS[cleanKey]) {
-                    fieldCounters[cleanKey] = (fieldCounters[cleanKey] || 0) + 1;
-                    const index = fieldCounters[cleanKey] - 1;
-                    
-                    // Obtenemos la configuración para esta aparición
-                    const mapping = ORDER_DEPENDENT_FIELDS[cleanKey][index];
-                    
-                    if (mapping) {
-                      submissionData[mapping.field] = mapping.value;
-                    }
-                  } 
-                  // Mapeo directo de frases únicas
-                  else if (ENUM_MAPPING[cleanKey]) {
-                    const { field, value } = ENUM_MAPPING[cleanKey];
-                    submissionData[field] = value;
-                  }
-                  // Arrays (Producción, Necesidades, TipoFinca...)
-                  else if (ARRAY_FIELDS_MAP[cleanKey]) {
-                    const arrayField = ARRAY_FIELDS_MAP[cleanKey];
-                    if (submissionData[arrayField]) {
-                      submissionData[arrayField].push(cleanKey);
-                    }
-                  }
-                }
               }
 
               // Crear la submission con los datos procesados
