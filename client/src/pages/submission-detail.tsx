@@ -415,14 +415,14 @@ export default function SubmissionDetailPage() {
 
             {/* Gobernanza y Comunidad (Checkboxes Multiselección) */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">¿Cómo cree que el proyecto podría mejorar la comunidad?</p>
+              <p className="text-sm font-medium">Gobernanza y Comunidad ¿Cómo cree que el proyecto Souto Vivo podría mejorar la convivencia y la economía del pueblo? (Puede marcar varias opciones):</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
                 {[
-                  "creacion_empleo_local", 
-                  "recuperar_tierras_abandonadas", 
-                  "formacion_capacitacion", 
-                  "cooperativas_gestion_colectiva", 
-                  "turismo_rural"
+                  "cooperativa_agrupacion", 
+                  "recuperacion_caminos", 
+                  "hacenderas_comunitarias", 
+                  "contacto_propietarios_jovenes", 
+                  "otros"
                 ].map((opcion) => {
                   const isSelected = submission.gobernanzaComunidad?.includes(opcion);
                   return (
