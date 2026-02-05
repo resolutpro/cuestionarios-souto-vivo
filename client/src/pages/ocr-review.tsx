@@ -345,42 +345,55 @@ export default function OcrReviewPage() {
 
               <Separator />
 
-              {/* Sección 3: Condiciones de la finca */}
+              {/* Sección 4: Necesidades y Objetivos de la Finca */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                    <MapPin className="h-5 w-5" />
+                    <Target className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">3. Condiciones de la finca</h3>
-                    <p className="text-sm text-muted-foreground">Infraestructura y orografía</p>
+                    <h3 className="text-lg font-bold">4. Necesidades y Objetivos de la Finca</h3>
+                    <p className="text-sm text-muted-foreground">Identifica las necesidades y el modelo agroforestal deseado</p>
                   </div>
                 </div>
                 <div className="grid gap-4 pl-12">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFieldInput("Acceso a la finca", "acceso", "enum", [
-                      { value: "bueno", label: "Bueno" },
-                      { value: "regular", label: "Regular" },
-                      { value: "malo", label: "Malo" }
-                    ])}
-                    {renderFieldInput("Disponibilidad de agua", "agua", "enum", [
-                      { value: "si", label: "Sí" },
-                      { value: "no", label: "No" },
-                      { value: "no_se", label: "No lo sé" }
-                    ])}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFieldInput("Grado de pendiente", "pendiente", "enum", [
-                      { value: "baja", label: "Baja" },
-                      { value: "media", label: "Media" },
-                      { value: "alta", label: "Alta" }
-                    ])}
-                    {renderFieldInput("Grado de pedregosidad", "pedregosidad", "enum", [
-                      { value: "baja", label: "Baja" },
-                      { value: "media", label: "Media" },
-                      { value: "alta", label: "Alta" }
-                    ])}
-                  </div>
+                  {renderFieldInput("Principales necesidades de la finca (puede marcar varias)", "necesidades", "checkbox-array", [
+                    { value: "productividad", label: "Mejora de la productividad" },
+                    { value: "matorral", label: "Control del matorral" },
+                    { value: "incendios", label: "Prevención de incendios" },
+                    { value: "suelo", label: "Mejora del suelo" },
+                    { value: "diversificacion", label: "Diversificación de usos" },
+                    { value: "abandonada", label: "Puesta en valor de finca abandonada" },
+                    { value: "otras", label: "Otras necesidades" }
+                  ])}
+                  {((formData.necesidades as string[]) || []).includes("otras") && (
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium">Especificar otras necesidades</Label>
+                      <Input 
+                        value={(formData.necesidadesOtras as string) || ""} 
+                        onChange={(e) => handleFieldChange("necesidadesOtras", e.target.value)}
+                        placeholder="Especificar..."
+                      />
+                    </div>
+                  )}
+
+                  {renderFieldInput("¿Qué modelo agroforestal le gustaría conseguir? (puede marcar varios)", "objetivosModelo", "checkbox-array", [
+                    { value: "produccion", label: "Producción" },
+                    { value: "biodiversidad", label: "Conservación del paisaje y biodiversidad" },
+                    { value: "costes", label: "Reducción de costes de mantenimiento" },
+                    { value: "social", label: "Nuevos modelos de impacto social" },
+                    { value: "otros", label: "Otros objetivos" }
+                  ])}
+                  {((formData.objetivosModelo as string[]) || []).includes("otros") && (
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium">Especificar otros objetivos</Label>
+                      <Input 
+                        value={(formData.otrosObjetivosTexto as string) || ""} 
+                        onChange={(e) => handleFieldChange("otrosObjetivosTexto", e.target.value)}
+                        placeholder="Especificar..."
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
