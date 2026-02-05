@@ -200,7 +200,7 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
 
     // 4. Array Mapping (Checkboxes)
     const arrayMatchKey = Object.keys(normalizedArrayMapping).find(k => 
-      normalizedName === k || normalizedName.includes(k)
+      normalizedName === k || normalizedName.includes(k) || k.includes(normalizedName)
     );
     if (arrayMatchKey && isChecked) {
       const mapping = normalizedArrayMapping[arrayMatchKey];
