@@ -79,7 +79,7 @@ const labelMappings: Record<string, string> = {
   no_adecuado: "No, el tamaño es adecuado",
   si_contrato: "Sí, bajo contrato de arrendamiento o cesión",
   si_municipio: "Sí, pero solo a alguien del municipio",
-  no_interes_ceder: "No, no tengo interés en ceder la gestión",
+  no: "No, no tengo interés en ceder la gestión",
   creacion_empleo_local: "Creación de empleo local",
   recuperar_tierras_abandonadas: "Recuperar tierras abandonadas",
   formacion_capacitacion: "Formación y capacitación",
@@ -350,37 +350,119 @@ export default function SubmissionDetailPage() {
               7. Dimensión Social y Gestión Colectiva
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
+          <CardContent className="space-y-6">
+            {/* Colaboración y Gestión Conjunta */}
+            <div className="space-y-3">
               <p className="text-sm font-semibold text-primary">Modelos de colaboración y gestión comunitaria</p>
-              <InfoItem label="¿Estaría dispuesto/a a participar en gestión conjunta?" value={submission.colaboracion} />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">¿Estaría dispuesto/a a participar en gestión conjunta?</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+                  {["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"].map((opcion) => (
+                    <div key={opcion} className="flex items-center gap-2 text-sm">
+                      {submission.colaboracion === opcion ? 
+                        <CheckCircle className="h-4 w-4 text-green-600" /> : 
+                        <div className="h-4 w-4 rounded-full border border-muted" />
+                      }
+                      <span className={submission.colaboracion === opcion ? "font-medium" : "text-muted-foreground"}>
+                        {labelMappings[opcion]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+
             <Separator />
-            <InfoItem label="¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?" value={submission.minifundio} />
+
+            {/* Minifundio / Obstáculo */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 ml-2">
+                {["si_mucho", "si_asumible", "no_adecuado"].map((opcion) => (
+                  <div key={opcion} className="flex items-center gap-2 text-sm">
+                    {submission.minifundio === opcion ? 
+                      <CheckCircle className="h-4 w-4 text-green-600" /> : 
+                      <div className="h-4 w-4 rounded-full border border-muted" />
+                    }
+                    <span className={submission.minifundio === opcion ? "font-medium" : "text-muted-foreground"}>
+                      {labelMappings[opcion]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <Separator />
-            <InfoItem label="¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?" value={submission.cesionTierras} />
+
+            {/* Cesión de Tierras */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?</p>
+              <div className="grid grid-cols-1 gap-2 ml-2">
+                {["si_contrato", "si_municipio", "no"].map((opcion) => (
+                  <div key={opcion} className="flex items-center gap-2 text-sm">
+                    {submission.cesionTierras === opcion ? 
+                      <CheckCircle className="h-4 w-4 text-green-600" /> : 
+                      <div className="h-4 w-4 rounded-full border border-muted" />
+                    }
+                    <span className={submission.cesionTierras === opcion ? "font-medium" : "text-muted-foreground"}>
+                      {labelMappings[opcion]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <Separator />
-            <ArrayInfo label="¿Cómo cree que el proyecto podría mejorar la comunidad?" values={submission.gobernanzaComunidad} />
-            {submission.gobernanzaOtro && (
-              <InfoItem label="Otras sugerencias de gobernanza" value={submission.gobernanzaOtro} />
-            )}
+
+            {/* Gobernanza y Comunidad (Checkboxes Multiselección) */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">¿Cómo cree que el proyecto podría mejorar la comunidad?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+                {[
+                  "creacion_empleo_local", 
+                  "recuperar_tierras_abandonadas", 
+                  "formacion_capacitacion", 
+                  "cooperativas_gestion_colectiva", 
+                  "turismo_rural"
+                ].map((opcion) => {
+                  const isSelected = submission.gobernanzaComunidad?.includes(opcion);
+                  return (
+                    <div key={opcion} className="flex items-center gap-2 text-sm">
+                      {isSelected ? 
+                        <CheckCircle className="h-4 w-4 text-blue-600" /> : 
+                        <div className="h-4 w-4 rounded border border-muted" />
+                      }
+                      <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
+                        {labelMappings[opcion]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {submission.gobernanzaOtro && (
+                <div className="mt-2 ml-2 p-2 bg-muted/30 rounded-md">
+                  <p className="text-xs text-muted-foreground uppercase font-bold">Otras sugerencias / Especificar:</p>
+                  <p className="text-sm">{submission.gobernanzaOtro}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {submission.observaciones && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Observaciones
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap">{submission.observaciones}</p>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Observaciones finales
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="whitespace-pre-wrap text-sm italic">
+            {submission.observaciones || "No se han añadido observaciones finales."}
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
