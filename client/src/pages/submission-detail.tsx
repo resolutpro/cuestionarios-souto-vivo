@@ -78,6 +78,11 @@ const labelMappings: Record<string, string> = {
   no_adecuado: "No, el tamaño es adecuado",
   si_contrato: "Sí, bajo contrato de arrendamiento o cesión",
   si_municipio: "Sí, pero solo a alguien del municipio",
+  creacion_empleo_local: "Creación de empleo local",
+  recuperar_tierras_abandonadas: "Recuperar tierras abandonadas",
+  formacion_capacitacion: "Formación y capacitación",
+  cooperativas_gestion_colectiva: "Cooperativas y gestión colectiva",
+  turismo_rural: "Turismo rural",
 };
 
 function InfoItem({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: typeof User }) {
@@ -340,16 +345,16 @@ export default function SubmissionDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Dimensión Social
+              7. Dimensión Social y Gestión Colectiva
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem label="Colaboración" value={submission.colaboracion} />
-            <InfoItem label="Problema del minifundio" value={submission.minifundio} />
-            <InfoItem label="Cesión de tierras" value={submission.cesionTierras} />
-            <ArrayInfo label="Gobernanza y comunidad" values={submission.gobernanzaComunidad} />
+            <InfoItem label="¿Estaría dispuesto/a a participar en gestión conjunta?" value={submission.colaboracion} />
+            <InfoItem label="¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?" value={submission.minifundio} />
+            <InfoItem label="¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?" value={submission.cesionTierras} />
+            <ArrayInfo label="¿Cómo cree que el proyecto podría mejorar la comunidad?" values={submission.gobernanzaComunidad} />
             {submission.gobernanzaOtro && (
-              <InfoItem label="Otra gobernanza" value={submission.gobernanzaOtro} />
+              <InfoItem label="Otras sugerencias de gobernanza" value={submission.gobernanzaOtro} />
             )}
           </CardContent>
         </Card>
