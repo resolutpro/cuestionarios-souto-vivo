@@ -521,30 +521,58 @@ export default function OcrReviewPage() {
                   </div>
                 </div>
                 <div className="grid gap-4 pl-12">
-                  {renderFieldInput("Preferencia de colaboración", "colaboracion", "enum", [
-                    { value: "si_agrupacion", label: "Sí, a través de agrupación de propietarios" },
-                    { value: "si_puntuales", label: "Sí, colaboraciones puntuales" },
-                    { value: "no_individual", label: "No, prefiero gestión individual" },
-                    { value: "no_se_asesoria", label: "No lo sé, necesito asesoría" }
-                  ])}
-                  {renderFieldInput("¿Considera el minifundio un problema?", "minifundio", "enum", [
-                    { value: "si_mucho", label: "Sí, es un gran problema" },
-                    { value: "si_asumible", label: "Sí, pero es asumible" },
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-primary">Modelos de colaboración y gestión comunitaria</p>
+                    {renderFieldInput("¿Estaría dispuesto/a a participar en gestión conjunta?", "colaboracion", "enum", [
+                      { value: "si_agrupacion", label: "Sí, me interesa integrarme en una agrupación" },
+                      { value: "si_puntuales", label: "Sí, pero solo para acciones puntuales" },
+                      { value: "no_individual", label: "No, prefiero gestión individual" },
+                      { value: "no_se_asesoria", label: "No lo sé, necesitaría asesoramiento" }
+                    ])}
+                  </div>
+                  <Separator />
+                  {renderFieldInput("¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?", "minifundio", "enum", [
+                    { value: "si_mucho", label: "Sí, mucho" },
+                    { value: "si_asumible", label: "Sí, aunque es asumible" },
                     { value: "no_adecuado", label: "No, el tamaño es adecuado" }
                   ])}
-                  {renderFieldInput("¿Estaría dispuesto/a a la cesión de tierras?", "cesionTierras", "enum", [
-                    { value: "si_contrato", label: "Sí, bajo contrato de arrendamiento" },
-                    { value: "si_municipio", label: "Sí, a través del banco de tierras municipal" },
-                    { value: "no", label: "No" }
+                  <Separator />
+                  {renderFieldInput("¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?", "cesionTierras", "enum", [
+                    { value: "si_contrato", label: "Sí, bajo contrato de arrendamiento o cesión" },
+                    { value: "si_municipio", label: "Sí, pero solo a alguien del municipio" },
+                    { value: "no_interes_ceder", label: "No, no tengo interés en ceder la gestión" }
                   ])}
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Observaciones adicionales</Label>
-                    <Textarea 
-                      value={(formData.observaciones as string) || ""} 
-                      onChange={(e) => handleFieldChange("observaciones", e.target.value)}
-                      placeholder="Cualquier otra información relevante..."
-                    />
+                  <Separator />
+                  {renderFieldInput("¿Cómo cree que el proyecto podría mejorar la comunidad? (puede marcar varias)", "gobernanzaComunidad", "checkbox-array", [
+                    { value: "creacion_empleo_local", label: "Creación de empleo local" },
+                    { value: "recuperar_tierras_abandonadas", label: "Recuperar tierras abandonadas" },
+                    { value: "formacion_capacitacion", label: "Formación y capacitación" },
+                    { value: "cooperativas_gestion_colectiva", label: "Cooperativas y gestión colectiva" },
+                    { value: "turismo_rural", label: "Turismo rural" }
+                  ])}
+                  {renderFieldInput("Otras sugerencias de gobernanza", "gobernanzaOtro")}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Sección Final: Observaciones */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <FileText className="h-5 w-5" />
                   </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Observaciones Finales</h3>
+                  </div>
+                </div>
+                <div className="pl-12">
+                  <Textarea 
+                    value={(formData.observaciones as string) || ""} 
+                    onChange={(e) => handleFieldChange("observaciones", e.target.value)}
+                    placeholder="Observaciones finales..."
+                    className="min-h-[100px]"
+                  />
                 </div>
               </div>
 

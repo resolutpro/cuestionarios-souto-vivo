@@ -79,6 +79,7 @@ const labelMappings: Record<string, string> = {
   no_adecuado: "No, el tamaño es adecuado",
   si_contrato: "Sí, bajo contrato de arrendamiento o cesión",
   si_municipio: "Sí, pero solo a alguien del municipio",
+  no_interes_ceder: "No, no tengo interés en ceder la gestión",
   creacion_empleo_local: "Creación de empleo local",
   recuperar_tierras_abandonadas: "Recuperar tierras abandonadas",
   formacion_capacitacion: "Formación y capacitación",
@@ -342,6 +343,7 @@ export default function SubmissionDetailPage() {
           </CardContent>
         </Card>
 
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
