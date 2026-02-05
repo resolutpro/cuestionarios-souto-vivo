@@ -1,0 +1,302 @@
+Página 1
+Nombre y apellidos: _________________________________________________________
+Teléfono de contacto: ______________
+Correo electrónico: __________________________________________________________
+Localidad: _________________________________________________________________
+Género: ☐Mujer ☐Hombre Otros/es☐
+Edad: ☐Menos de 35 años ☐Entre 35 y 50 años ☐Más de 50 años
+Relación con la finca:
+☐Propietario/a. si marca esta opción ¿La finca está bajo el régimen de Titularidad Compartida? ☐Sí No"☐
+☐Arrendatario/a
+☐Gestor/a
+☐Otra (especificar): __________________________________
+Situación laboral: ¿ es usted agricultor/a a título principal? ☐Sí No, es complementario☐
+¿Pertenece usted a alguna asociación?, en caso afirmativo indique cual_______________
+
+
+CAMPOS QUE LEE LA IA
+Nombre y apellidos
+Teléfono de contacto
+Correo electrónico
+Localidad
+Mujer
+Hombre
+Otros/es
+Menos de 35 años
+Entre 35 y 50 años
+Más de 50 años
+Propietario/a si marca esta opción ¿La finca está bajo el régimen de Titularidad
+Sí
+No"
+Arrendatario/a
+Gestor/a
+Otra (especificar)
+Sí
+No
+¿Pertenece usted a alguna asociación?, en caso afirmativo indique cual
+
+Página 2 
+Referencia catastral o polígono y parcela de la(s) finca(s) disponible(s) para actuación (esta información figura en los recibos del IBI y en la web del Catastro)
+________________________________________________________________________
+________________________________________________________________________
+________________________________________________________________________
+Superficie aproximada disponible para el proyecto:
+☐Menos de 1 ha ☐Entre 1 y 5 ha ☐Más de 5 ha ☐Otra (especificar):
+☐No lo sé / pendiente de consultar
+Tipo de finca (puede marcar varias opciones):
+☐Agrícola ☐Forestal ☐Mixta
+Uso actual del suelo (marcar una opción):
+☐Cultivo activo ☐Pasto ☐Monte ☐Sin uso / abandonado
+☐Otro (especificar): _____________________________________________
+¿La finca está actualmente en producción? ☐Sí ☐No
+Acceso a la finca: ☐Bueno (acceso con vehículo) ☐Regular ☐Malo
+Disponibilidad de agua: ☐Sí ☐No ☐No lo sé
+Pendiente dominante del terreno: ☐Baja ☐Media ☐Alta
+Pedregosidad: ☐Baja ☐Media ☐Alta
+
+
+CAMPOS QUE LEE LA IA
+Referencia catastral o polígono y parcela de la(s) finca(s) disponible(s) para actuación (esta información figura en los recibos del IBI y en la web del Catastro)
+Menos de 1 ha
+Entre 1 y 5 ha
+Más de 5 ha
+Otra (especificar)
+No lo sé / pendiente de consultar
+Agrícola
+Forestal
+Mixta
+Cultivo activo
+Pasto
+Monte
+Sin uso / abandonado (a
+Otro (especificar)
+Sí
+No
+Bueno (acceso con vehículo)
+Regular
+Malo
+Sí
+No
+No lo sé
+Baja
+Media
+Alta
+Baja
+Media
+Alta
+
+
+Página 3 
+¿Cuáles considera que son las principales necesidades de la finca? (Puede marcar varias opciones)
+☐Mejora de la productividad
+☐Control del matorral
+☐Prevención de incendios
+☐Mejora del suelo
+☐Diversificación de usos
+☐Puesta en valor de finca abandonada
+☐Otras (especificar): ________________________________
+¿Qué modelo agroforestal le gustaría conseguir? (Puede marcar varias opciones)
+☐Producción, principalmente de:
+☐Madera ☐Leña ☐Castaña Vid☐
+☐Frutícola (cereza, pera, manzana) ☐Hortícola (pimiento, cebolla)
+☐Pasto / ganadera ☐Productos apícolas (miel, polen, propóleo)
+☐Conservación del paisaje y la biodiversidad
+☐Reducción de costes de mantenimiento
+Nuevos modelos agroforestales de impacto social (uso de la finca para formaciones, creación☐ de empleo local, fomentar de la participación comunitaria...)
+☐Otros objetivos (especificar): ________________________________
+Grado de interés en participar en un proyecto piloto: ☐Alto ☐Medio ☐Bajo
+
+CAMPOS QUE LEE LA IA
+Mejora de la productividad
+Control del matorral
+Prevención de incendios
+Mejora del suelo
+Diversificación de usos
+Puesta en valor de finca abandonada
+Otras (especificar)
+Producción, principalmente de
+Madera
+Leña
+Castaña
+Vid
+Frutícola (cereza, pera, manzana)
+Hortícola (pimiento, cebolla)
+Pasto/ganadera
+Productos apícolas (miel, polen, propóleo)
+Conservación del paisaje y la biodiversidad
+Reducción de costes de mantenimiento
+Nuevos modelos agroforestales de impacto social (uso de la finca para formaciones, creación empleo local, fomentar de la participación comunitaria)
+Otros objetivos (especificar)
+Alto
+Medio
+Bajo
+
+
+Página 4
+¿En qué nivel estaría dispuesto/a que actúe nuestro proyecto?
+☐Solo diagnóstico y propuesta técnica ☐Implantación de actuaciones piloto
+Disponibilidad para (marcar lo que proceda):
+☐Asistir a reuniones o talleres
+☐Recibir visitas técnicas en la finca
+☐Colaborar en el seguimiento del proyecto
+¿Existe una previsión de relevo generacional para la gestión de la finca en los próximos 5-10 años?
+☐Sí, hay familiares o personas interesadas
+☐No, existe riesgo de abandono tras mi jubilación.
+☐Estoy buscando a alguien que quiera trabajarla.
+¿En qué aspectos le gustaría recibir formación? (Puede marcar varias opciones y concretar los contenidos que le interesan)
+☐Cultivo del castaño
+☐Sistemas agroforestales
+☐Agricultura regenerativa
+☐Ganadería regenerativa
+☐Plantaciones de fijación de carbono
+☐Comercialización de productos
+☐Tramitación de ayudas
+☐Legislación y fiscalidad
+☐Otros (especificar): ________________________________
+
+CAMPOS QUE LEE LA IA
+Solo diagnóstico y propuesta técnica
+Implantación de actuaciones piloto
+Asistir a reuniones o talleres
+Sí, hay familiares o personas interesadas
+No, existe riesgo de abandono tras mi jubilación
+Estoy buscando a alguien que quiera trabajarla
+Cultivo del castaño
+Sistemas agroforestales
+Agricultura regenerativa
+Ganadería regenerativa
+Plantaciones de fijación de carbono
+Comercialización de productos
+Tramitación de ayudas
+Legislación y fiscalidad
+Otros (especificar)
+
+
+Página 5
+Modelos de colaboración ¿Estaría dispuesto/a a participar en fórmulas de gestión conjunta con otros propietarios o propietarias de fincas colindantes?
+☐Sí, me interesa integrarme en una agrupación para reducir costes y mejorar la producción.
+☐Sí, pero solo para acciones puntuales (ej. limpieza de caminos, tratamientos contra plagas).
+☐No, prefiero mantener la gestión de mi finca de forma totalmente individual.
+☐No lo sé, necesitaría asesoramiento jurídico y técnico previo.
+El problema del minifundio ¿Considera que el tamaño o la dispersión de sus fincas es un obstáculo para su rentabilidad?
+☐Sí, mucho ☐Sí, aunque dificulta las tareas es asumible ☐No, el tamaño es adecuado
+Cesión de Tierras En caso de que usted NO pueda trabajar la finca, ¿estaría dispuesto/a a ceder su gestión a través de un Banco de tierras o fórmulas similares para evitar su abandono?
+☐Sí, bajo un contrato de arrendamiento o cesión ☐Sí, pero solo a alguien del munipio ☐ No, no tengo interés en ceder la gestión.
+Gobernanza y Comunidad ¿Cómo cree que el proyecto Souto Vivo podría mejorar la convivencia y la economía del pueblo? (Puede marcar varias opciones):
+☐Creando una cooperativa o agrupación de productores local.
+☐Recuperando caminos y accesos que beneficien a toda la vecindad.
+Organizando "hacenderas" o jornadas de trabajo comunitario voluntario.☐
+Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que☐ quieren trabajar la tierra.
+☐Otros:__________________________________________________________________
+8 OBSERVACIONES FINALES Comentarios, dudas o propuestas adicionales:___________________________________________________________________________________________________________________________________________________
+
+CAMPOS QUE LEE LA IA
+Sí, pero solo para acciones puntuales (ej limpieza de caminos, tratamientos contra plagas)
+No, prefiero mantener la gestión de mi finca de forma totalmente individual
+No lo sé, necesitaría asesoramiento jurídico y técnico previo
+Sí, mucho
+No, el tamaño es adecuado
+Sí, bajo un contrato de arrendamiento o cesión
+Sí, pero solo a alguien del munipio
+No, no tengo interés en ceder la gestión
+Creando una cooperativa o agrupación de productores local
+Recuperando caminos y accesos que beneficien a toda la vecindad
+Organizando "hacenderas" o jornadas de trabajo comunitario voluntario
+Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra
+Otros
+
+
+Página 6
+☐ CONSIENTO el tratamiento de mis datos personales para la gestión técnica y el análisis de mi finca dentro del proyecto "Souto Vivo"
+☐ACEPTO recibir comunicaciones relacionadas directamente con las actividades, formaciones y avisos de este proyecto.
+
+CAMPOS QUE LEE LA IA
+CONSIENTO el tratamiento de mis datos personales para la gestión técnica y el análisis de mi dentro del proyecto "Souto Vivo"
+ACEPTO recibir comunicaciones relacionadas directamente con las actividades, formaciones y avisos de este proyecto
+
+
+RESUMEN
+PÁGINA 1
+Nombre y apellidos -> nombre
+Teléfono de contacto -> telefono
+Correo electrónico -> email
+Localidad -> localidad
+Mujer -> genero = "mujer"
+Hombre -> genero = "hombre"
+Otros/es -> genero = "otros"
+Menos de 35 años -> edad = "menos_35"
+Entre 35 y 50 años -> edad = "entre_35_50"
+Más de 50 años -> edad = "mas_50"
+Propietario/a... -> relacionFinca = "propietario"
+1º "Sí" (Titularidad) -> titularidadCompartida = "si"
+1º "No" (Titularidad) -> titularidadCompartida = "no"
+Arrendatario/a -> relacionFinca = "arrendatario"
+Gestor/a -> relacionFinca = "gestor"
+Otra (especificar) -> relacionFinca = "otra"
+2º "Sí" (Agricultor) -> agricultorTituloPrincipal = "si"
+2º "No" (Agricultor) -> agricultorTituloPrincipal = "no_complementario"
+¿Pertenece usted a alguna asociación?... -> asociacion
+PÁGINA 2
+Referencia catastral... -> referenciaCatastral
+Menos de 1 ha -> superficie = "menos_1"
+Entre 1 y 5 ha -> superficie = "1_5"
+Más de 5 ha -> superficie = "mas_5"
+Otra (especificar) -> superficie = "otra"
+No lo sé / pendiente... -> superficie = "no_se"
+Agrícola, Forestal, Mixta -> Agregar a array tipoFinca
+Cultivo activo -> usoSuelo = "cultivo"
+Pasto -> usoSuelo = "pasto"
+Monte -> usoSuelo = "monte"
+Sin uso / abandonado -> usoSuelo = "abandonado"
+Otro (especificar) (Uso suelo) -> usoSuelo = "otro"
+1º "Sí" (Producción) -> enProduccion = true
+1º "No" (Producción) -> enProduccion = false
+Bueno..., Regular, Malo -> acceso
+2º "Sí" (Agua) -> agua = "si"
+2º "No" (Agua) -> agua = "no"
+No lo sé (Agua) -> agua = "no_se"
+1º Bloque Pendiente:
+1º Baja -> pendiente = "baja"
+1º Media -> pendiente = "media"
+1º Alta -> pendiente = "alta"
+2º Bloque Pedregosidad:
+2º Baja -> pedregosidad = "baja"
+2º Media -> pedregosidad = "media"
+2º Alta -> pedregosidad = "alta"
+PÁGINA 3
+Necesidades (Array): Mejora de la productividad, Control del matorral, Prevención de incendios, Mejora del suelo, Diversificación de usos, Puesta en valor..., Otras (especificar) -> necesidades
+Modelo (Array): Producción, principalmente de, Madera, Leña, Castaña, Vid, Frutícola..., Hortícola..., Pasto / ganadera, Productos apícolas... -> produccionPrincipal
+Objetivos (Array): Conservación del paisaje..., Reducción de costes..., Nuevos modelos..., Otros objetivos... -> objetivosModelo
+Grado Interés:
+Alto -> gradoInteres = "alto"
+Medio -> gradoInteres = "medio"
+Bajo -> gradoInteres = "bajo"
+PÁGINA 4
+Solo diagnóstico... -> nivelActuacion = "diagnostico"
+Implantación... -> nivelActuacion = "implantacion"
+Disponibilidad (Array): Asistir a reuniones..., Recibir visitas..., Colaborar en el seguimiento... -> disponibilidad
+Relevo:
+Sí, hay familiares... -> relevoGeneracional = "si_familiares"
+No, existe riesgo... -> relevoGeneracional = "no_riesgo"
+Estoy buscando... -> relevoGeneracional = "buscando"
+Formación (Array): Cultivo del castaño, Sistemas agroforestales, Agricultura regenerativa, Ganadería regenerativa, Plantaciones de fijación..., Comercialización..., Tramitación..., Legislación..., Otros (especificar) -> formacion
+PÁGINA 5
+Colaboración:
+1º Sí... ("Sí, me interesa integrarme...") -> colaboracion = "si_agrupacion"
+2º Sí... ("Sí, pero solo para acciones...") -> colaboracion = "si_puntuales"
+1º No... ("No, prefiero mantener...") -> colaboracion = "no_individual"
+No lo sé... -> colaboracion = "no_se"
+Minifundio:
+3º Sí... ("Sí, mucho") -> minifundio = "si_mucho"
+4º Sí... ("Sí, aunque dificulta...") -> minifundio = "si_asumible"
+2º No... ("No, el tamaño es adecuado") -> minifundio = "no_adecuado"
+Cesión Tierras:
+5º Sí... ("Sí, bajo un contrato...") -> cesionTierras = "si_contrato"
+6º Sí... ("Sí, pero solo a alguien...") -> cesionTierras = "si_municipio"
+3º No... ("No, no tengo interés...") -> cesionTierras = "no"
+Gobernanza (Array): Creando una cooperativa..., Recuperando caminos..., Organizando "hacenderas"..., Facilitando el contacto..., Otros -> gobernanzaComunidad
+Observaciones: OBSERVACIONES FINALES... -> observaciones
+PÁGINA 6
+CONSIENTO... -> consentimientoTratamiento = true
+ACEPTO... -> aceptoComunicaciones = true
+
