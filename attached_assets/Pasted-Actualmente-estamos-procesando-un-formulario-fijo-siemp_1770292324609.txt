@@ -1,0 +1,27 @@
+Actualmente estamos procesando un formulario fijo (siempre el mismo PDF) usando Google Document AI. Nuestro sistema actual mapea los campos basándose únicamente en el orden secuencial de aparición (ej. "el primer 'Sí' es Titularidad, el segundo es Agricultor..."). Esto es frágil: si el OCR detecta una mancha como una "X" extra o se salta un campo, todo el mapeo posterior se desplaza y se rompe.
+
+Objetivo: Hacer el sistema robusto utilizando la geometría del documento (número de página y coordenadas) para garantizar que los campos se mapean correctamente, independientemente de errores en otras partes del documento.
+
+Instrucciones de cambio por fichero:
+
+En server/lib/document-ai.ts:
+
+Modifica la función analyzeForm para que no solo devuelva key, value y confidence.
+
+Necesito que extraigas y devuelvas también el número de página y las coordenadas normalizadas (especialmente la posición vertical Y y horizontal X) de cada campo detectado.
+
+Implementa una lógica de ordenamiento explícita en el return de esta función: ordena los campos primero por número de página, luego por posición vertical (Y) y finalmente por horizontal (X). No confíes en el orden por defecto de la API.
+
+En server/routes.ts (endpoint de procesamiento OCR):
+
+Cambia la lógica de mapeo de campos repetidos (ej. los checkboxes de "Sí", "No", "Baja", "Media", "Alta").
+
+Actualmente usamos contadores globales (ej. counter['Sí']++). Esto debe cambiarse por contadores con ámbito de página (Page-Scoped).
+
+Crea una estructura de configuración (constante) que defina qué campo de base de datos corresponde a cada etiqueta por página.
+
+Ejemplo conceptual: "En la Página 1, el primer 'Sí' es X, el segundo es Y... En la Página 2, el primer 'Sí' es Z".
+
+En el bucle que recorre los campos extraídos, utiliza el pageNumber que ahora viene de document-ai.ts para reiniciar los contadores o seleccionar el mapeo específico de esa página.
+
+Esto asegurará que un falso positivo en la página 1 no afecte al orden de los campos en la página 2.
