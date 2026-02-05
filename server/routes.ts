@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Mapeo de campos de texto simple (Texto -> Campo BD)
+// 1. Campos de texto libre (sin cambios, funcionan por coincidencia de nombre)
 const TEXT_FIELDS_MAP: Record<string, string> = {
   "Nombre y apellidos": "nombreApellidos",
   "Nombre y apellidos:": "nombreApellidos",
@@ -20,59 +20,144 @@ const TEXT_FIELDS_MAP: Record<string, string> = {
   "Correo electrónico:": "email",
   "Localidad": "localidad",
   "Localidad:": "localidad",
-  "Referencia catastral": "referenciasCatastrales" // Coincidencia parcial
+  "Referencia catastral": "referenciasCatastrales" // Coincidencia parcial para capturar todo el bloque
 };
 
-// Configuración para campos duplicados que dependen del orden de aparición
-// "Baja", "Media", "Alta" aparecen primero en la sección PENDIENTE y luego en PEDREGOSIDAD
-const ORDER_DEPENDENT_FIELDS: Record<string, string[]> = {
-  "Baja": ["pendiente", "pedregosidad"],
-  "Media": ["pendiente", "pedregosidad"],
-  "Alta": ["pendiente", "pedregosidad"]
+// 2. LÓGICA DE ORDEN (Vital para casillas que se llaman igual)
+// Definimos qué campo de la BD corresponde a cada aparición de la etiqueta en el PDF.
+const ORDER_DEPENDENT_FIELDS: Record<string, { field: string, value: any }[]> = {
+  // Caso: "Sí" y "No" aparecen 4 veces en el formulario en este orden exacto:
+  // 1. Titularidad Compartida | 2. Agricultor Principal | 3. En Producción | 4. Agua de Riego
+  "Sí": [
+    { field: "titularidadCompartida", value: "si" },        // 1ª vez que sale "Sí"
+    { field: "agricultorTituloPrincipal", value: "si" },    // 2ª vez
+    { field: "enProduccion", value: true },                 // 3ª vez
+    { field: "agua", value: "si" }                          // 4ª vez
+  ],
+  "No": [
+    { field: "titularidadCompartida", value: "no" },        // 1ª vez que sale "No"
+    { field: "agricultorTituloPrincipal", value: "no_complementario" }, // 2ª vez
+    { field: "enProduccion", value: false },                // 3ª vez
+    { field: "agua", value: "no" }                          // 4ª vez
+  ],
+  // Caso: "Baja", "Media", "Alta" (Femenino) aparecen 2 veces:
+  // 1. Pendiente | 2. Pedregosidad
+  "Baja": [
+    { field: "pendiente", value: "baja" },
+    { field: "pedregosidad", value: "baja" }
+  ],
+  "Media": [
+    { field: "pendiente", value: "media" },
+    { field: "pedregosidad", value: "media" }
+  ],
+  "Alta": [
+    { field: "pendiente", value: "alta" },
+    { field: "pedregosidad", value: "alta" }
+  ]
 };
 
-// Mapeo de opciones únicas (Radio buttons) que no se repiten
+// 3. Mapeo EXACTO de frases largas (Copiadas de tu JSON del OCR)
 const ENUM_MAPPING: Record<string, { field: string, value: string }> = {
   // Género
   "Mujer": { field: "genero", value: "mujer" },
   "Hombre": { field: "genero", value: "hombre" },
   "Otros/es": { field: "genero", value: "otros" },
+
   // Edad
   "Menos de 35 años": { field: "edad", value: "menos_35" },
   "Entre 35 y 50 años": { field: "edad", value: "entre_35_50" },
   "Más de 50 años": { field: "edad", value: "mas_50" },
-  // Relación
+
+  // Relación con la finca
+  "Propietario/a. si marca esta opción ¿La finca": { field: "relacionFinca", value: "propietario" }, // Texto cortado OCR
   "Propietario/a": { field: "relacionFinca", value: "propietario" },
   "Arrendatario/a": { field: "relacionFinca", value: "arrendatario" },
   "Gestor/a": { field: "relacionFinca", value: "gestor" },
+
   // Superficie
   "Menos de 1 ha": { field: "superficieCategoria", value: "menos_1ha" },
   "Entre 1 y 5 ha": { field: "superficieCategoria", value: "entre_1_5ha" },
   "Más de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
-  // Uso suelo
+
+  // Uso del suelo
   "Cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
   "Pasto": { field: "usoSuelo", value: "pasto" },
   "Monte": { field: "usoSuelo", value: "monte" },
+  "Sin uso / abandonado (a": { field: "usoSuelo", value: "sin_uso" }, // Texto exacto del JSON
   "Sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
-  // Acceso (Regular solo aparece aquí según el PDF)
+
+  // Acceso
   "Bueno (acceso con vehículo)": { field: "acceso", value: "bueno" },
   "Regular": { field: "acceso", value: "regular" },
   "Malo": { field: "acceso", value: "malo" },
-  // Agua
-  "No lo sé": { field: "agua", value: "no_se" }, // Cuidado, "No lo sé" puede repetirse
+
+  // Agua (La opción "No lo sé" es única aquí)
+  "No lo sé": { field: "agua", value: "no_se" },
+
+  // Grado de interés (Masculino, no se confunde con Pendiente)
+  "Alto": { field: "gradoInteres", value: "alto" },
+  "Medio": { field: "gradoInteres", value: "medio" },
+  "Bajo": { field: "gradoInteres", value: "bajo" },
+
+  // Nivel de actuación
+  "Solo diagnóstico y propuesta técnica": { field: "nivelActuacion", value: "solo_diagnostico" },
+  "Implantación de actuaciones piloto": { field: "nivelActuacion", value: "implantacion" },
+
+  // Relevo generacional
+  "Sí, hay familiares o personas interesadas": { field: "relevoGeneracional", value: "si_familiares" },
+  "No, existe riesgo de abandono tras mi jubilación": { field: "relevoGeneracional", value: "no_riesgo_abandonono" },
+  "Estoy buscando a alguien que quiera trabajarla": { field: "relevoGeneracional", value: "buscando" },
+
+  // Minifundio
+  "Sí, mucho": { field: "minifundio", value: "si_mucho" },
+  "No, el tamaño es adecuado": { field: "minifundio", value: "no_adecuado" },
+
+  // Cesión de tierras (El PDF tiene opciones complejas)
+  "Sí, bajo un contrato de arrendamiento o cesión": { field: "cesionTierras", value: "si_contrato" },
+  "Sí, pero solo a alguien del munipio": { field: "cesionTierras", value: "si_municipio" },
+  "No, no tengo interés en ceder la gestión.": { field: "cesionTierras", value: "no" }
 };
 
-// Listas para campos de selección múltiple (Arrays)
+// 4. Arrays (Checkboxes múltiples)
 const ARRAY_FIELDS_MAP: Record<string, string> = {
-  // Producción
+  // Tipo de finca
+  "Agrícola": "tipoFinca",
+  "Forestal": "tipoFinca",
+  "Mixta": "tipoFinca",
+
+  // Producción Principal
   "Madera": "produccionPrincipal",
   "Leña": "produccionPrincipal",
   "Castaña": "produccionPrincipal",
+  "Vid": "produccionPrincipal",
+  "Frutícola (cereza, pera, manzana)": "produccionPrincipal",
+  "Hortícola (pimiento, cebolla)": "produccionPrincipal",
+  "Pasto/ganadera": "produccionPrincipal",
+  "Productos apícolas (miel, polen, propóleo)": "produccionPrincipal",
+
   // Necesidades
   "Mejora de la productividad": "necesidades",
   "Control del matorral": "necesidades",
   "Prevención de incendios": "necesidades",
-  // ... añade aquí el resto de opciones de los checkboxes múltiples
+  "Mejora del suelo": "necesidades",
+  "Diversificación de usos": "necesidades",
+  "Puesta en valor de finca abandonada": "necesidades",
+
+  // Formación
+  "Cultivo del castaño": "formacion",
+  "Sistemas agroforestales": "formacion",
+  "Agricultura regenerativa": "formacion",
+  "Ganadería regenerativa": "formacion",
+  "Plantaciones de fijación de carbono": "formacion",
+  "Comercialización de productos": "formacion",
+  "Tramitación de ayudas": "formacion",
+  "Legislación y fiscalidad": "formacion",
+
+  // Gobernanza
+  "Creando una cooperativa o agrupación de productores local.": "gobernanzaComunidad",
+  "Recuperando caminos y accesos que beneficien a toda la vecindad.": "gobernanzaComunidad",
+  "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario.": "gobernanzaComunidad",
+  "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra.": "gobernanzaComunidad"
 };
 
 const ocrStatusSchema = z.object({
@@ -600,22 +685,24 @@ export async function registerRoutes(
                 const isChecked = cleanValue.includes("☑") || cleanValue.toLowerCase() === "si" || cleanValue.toUpperCase() === "X";
 
                 if (isChecked) {
-                  // Manejo de ORDEN (Pendiente vs Pedregosidad)
+                  // Manejo de ORDEN (Para Sí/No y Baja/Media/Alta)
                   if (ORDER_DEPENDENT_FIELDS[cleanKey]) {
                     fieldCounters[cleanKey] = (fieldCounters[cleanKey] || 0) + 1;
                     const index = fieldCounters[cleanKey] - 1;
-                    const targetField = ORDER_DEPENDENT_FIELDS[cleanKey][index];
                     
-                    if (targetField) {
-                      submissionData[targetField] = cleanKey.toLowerCase(); // "media", "alta"...
+                    // Obtenemos la configuración para esta aparición
+                    const mapping = ORDER_DEPENDENT_FIELDS[cleanKey][index];
+                    
+                    if (mapping) {
+                      submissionData[mapping.field] = mapping.value;
                     }
                   } 
-                  // Mapeo directo (Género, Edad...)
+                  // Mapeo directo de frases únicas
                   else if (ENUM_MAPPING[cleanKey]) {
                     const { field, value } = ENUM_MAPPING[cleanKey];
                     submissionData[field] = value;
                   }
-                  // Arrays (Producción, Necesidades...)
+                  // Arrays (Producción, Necesidades, TipoFinca...)
                   else if (ARRAY_FIELDS_MAP[cleanKey]) {
                     const arrayField = ARRAY_FIELDS_MAP[cleanKey];
                     if (submissionData[arrayField]) {
