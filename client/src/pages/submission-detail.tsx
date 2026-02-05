@@ -45,7 +45,6 @@ const labelMappings: Record<string, string> = {
   gestor: "Gestor/a",
   otra: "Otra",
   si: "Sí",
-  no: "No",
   no_complementario: "No, es complementario",
   menos_1ha: "Menos de 1 ha",
   entre_1_5ha: "Entre 1 y 5 ha",
