@@ -79,11 +79,11 @@ const labelMappings: Record<string, string> = {
   si_contrato: "Sí, bajo contrato de arrendamiento o cesión",
   si_municipio: "Sí, pero solo a alguien del municipio",
   no: "No, no tengo interés en ceder la gestión",
-  creacion_empleo_local: "Creación de empleo local",
-  recuperar_tierras_abandonadas: "Recuperar tierras abandonadas",
-  formacion_capacitacion: "Formación y capacitación",
-  cooperativas_gestion_colectiva: "Cooperativas y gestión colectiva",
-  turismo_rural: "Turismo rural",
+  cooperativa_agrupacion: "Creando una cooperativa o agrupación de productores local",
+  recuperacion_caminos: "Recuperando caminos y accesos que beneficien a toda la vecindad",
+  hacenderas_comunitarias: "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario",
+  contacto_propietarios_jovenes: "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra",
+  otros: "Otros",
 };
 
 function InfoItem({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: typeof User }) {

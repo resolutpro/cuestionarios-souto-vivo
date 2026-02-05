@@ -1153,15 +1153,15 @@ export default function NewSubmissionPage() {
                   name="gobernanzaComunidad"
                   render={() => (
                     <FormItem>
-                      <FormLabel>¿Cómo cree que el proyecto podría mejorar la comunidad?</FormLabel>
+                      <FormLabel>Gobernanza y Comunidad ¿Cómo cree que el proyecto Souto Vivo podría mejorar la convivencia y la economía del pueblo? (Puede marcar varias opciones):</FormLabel>
                       <CheckboxArrayField
                         name="gobernanzaComunidad"
                         options={[
-                          { value: "empleo_local", label: "Creación de empleo local" },
-                          { value: "recuperar_tierras", label: "Recuperar tierras abandonadas" },
-                          { value: "formacion_capacitacion", label: "Formación y capacitación" },
-                          { value: "cooperativas_colectivas", label: "Cooperativas y gestión colectiva" },
-                          { value: "turismo_rural", label: "Turismo rural" },
+                          { value: "cooperativa_agrupacion", label: "Creando una cooperativa o agrupación de productores local" },
+                          { value: "recuperacion_caminos", label: "Recuperando caminos y accesos que beneficien a toda la vecindad" },
+                          { value: "hacenderas_comunitarias", label: "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario" },
+                          { value: "contacto_propietarios_jovenes", label: "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra" },
+                          { value: "otros", label: "Otros" },
                         ]}
                       />
                     </FormItem>
