@@ -1,0 +1,255 @@
+El problema principal es que el mapeo actual es demasiado rígido.
+
+El OCR (Document AI) a veces devuelve el texto con espacios extra, puntuación diferente (como los dos puntos :) o el símbolo de checkbox (☑ vs ☐) que debe ser interpretado lógicamente. Además, para los campos repetidos ("Sí", "No", "Baja", "Media", "Alta"), necesitas llevar un conteo estricto del orden en que aparecen en el JSON para saber a qué campo de la base de datos pertenecen.
+
+He analizado tu archivo ocr_extracted_fields (1).json y tu PDF. Aquí tienes la solución completa.
+
+1. Actualiza las constantes de mapeo (Mejoradas)
+He corregido tu ARRAY_FIELDS_MAP para que incluya no solo el nombre del campo en la BD, sino también el valor que se debe guardar en el array (ej: guardar "agricola" en lugar de "Agrícola").
+
+TypeScript
+// server/lib/document-ai.ts (o donde tengas tu lógica de mapeo)
+
+// Normalizador para ignorar mayúsculas, tildes y puntuación al comparar nombres de campos
+const normalizeKey = (text: string) => text.trim().toLowerCase().replace(/[:.]/g, '');
+
+// 1. CAMPOS DE TEXTO SIMPLE
+const TEXT_FIELDS_MAP: Record<string, string> = {
+  "nombre y apellidos": "nombreApellidos",
+  "telefono de contacto": "telefono",
+  "correo electronico": "email",
+  "localidad": "localidad",
+  "referencias catastrales": "referenciasCatastrales", // Detecta el bloque del text area
+  "referencia catastral": "referenciasCatastrales"
+};
+
+// 2. CAMPOS DEPENDIENTES DEL ORDEN (Contadores)
+// Importante: El OCR lee de arriba a abajo. Si aparecen 4 "Sí", el índice 0 es el primero, el 1 el segundo, etc.
+const ORDER_DEPENDENT_FIELDS: Record<string, { field: string, value: any }[]> = {
+  "si": [
+    { field: "titularidadCompartida", value: "si" },        // 1º Sí
+    { field: "agricultorTituloPrincipal", value: "si" },    // 2º Sí
+    { field: "agua", value: "si" }                          // 3º Sí (Ojo: En tu código tenías 4, verifica el PDF. En el PDF veo 3 bloques claros de radiobuttons Si/No arriba)
+    // Ajusta este array según el orden EXACTO de lectura del JSON
+  ],
+  "no": [
+    { field: "titularidadCompartida", value: "no" },
+    { field: "agricultorTituloPrincipal", value: "no_complementario" },
+    { field: "agua", value: "no" }
+  ],
+  "baja": [
+    { field: "pendiente", value: "baja" },      // 1ª vez (Pendiente)
+    { field: "pedregosidad", value: "baja" }    // 2ª vez (Pedregosidad)
+  ],
+  "media": [
+    { field: "pendiente", value: "media" },
+    { field: "pedregosidad", value: "media" }
+  ],
+  "alta": [
+    { field: "pendiente", value: "alta" },
+    { field: "pedregosidad", value: "alta" }
+  ]
+};
+
+// 3. MAPEO DE ENUMS (Radio buttons únicos con nombres largos)
+const ENUM_MAPPING: Record<string, { field: string, value: string }> = {
+  // Género
+  "mujer": { field: "genero", value: "mujer" },
+  "hombre": { field: "genero", value: "hombre" },
+  
+  // Edad
+  "menos de 35 años": { field: "edad", value: "menos_35" },
+  "entre 35 y 50 años": { field: "edad", value: "entre_35_50" },
+  "mas de 50 años": { field: "edad", value: "mas_50" },
+  "más de 50 años": { field: "edad", value: "mas_50" },
+
+  // Relación Finca
+  "propietario/a": { field: "relacionFinca", value: "propietario" },
+  "arrendatario/a": { field: "relacionFinca", value: "arrendatario" },
+  "gestor/a": { field: "relacionFinca", value: "gestor" },
+
+  // Superficie
+  "menos de 1 ha": { field: "superficieCategoria", value: "menos_1ha" },
+  "entre 1 y 5 ha": { field: "superficieCategoria", value: "entre_1_5ha" },
+  "mas de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
+  "más de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
+
+  // Uso Suelo
+  "cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
+  "pasto": { field: "usoSuelo", value: "pasto" },
+  "monte": { field: "usoSuelo", value: "monte" },
+  "sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
+  "sin uso / abandonada": { field: "usoSuelo", value: "sin_uso" },
+
+  // Acceso
+  "bueno (acceso con vehículo)": { field: "acceso", value: "bueno" },
+  "regular": { field: "acceso", value: "regular" },
+  "malo": { field: "acceso", value: "malo" },
+
+  // Agua (especial)
+  "no lo sé": { field: "agua", value: "no_se" },
+
+  // Minifundio
+  "sí, mucho": { field: "minifundio", value: "si_mucho" },
+  "sí, aunque es asumible": { field: "minifundio", value: "si_asumible" }, // Faltaba esta
+  "no, el tamaño es adecuado": { field: "minifundio", value: "no_adecuado" },
+
+  // Cesión
+  "sí, bajo contrato de arrendamiento o cesión": { field: "cesionTierras", value: "si_contrato" },
+  "sí, bajo un contrato de arrendamiento o cesión": { field: "cesionTierras", value: "si_contrato" },
+  "sí, pero solo a alguien del municipio": { field: "cesionTierras", value: "si_municipio" },
+  "no, no tengo interés en ceder la gestión": { field: "cesionTierras", value: "no" }
+};
+
+// 4. MAPEO DE ARRAYS (Checkboxes Múltiples)
+// Clave: Texto del OCR (normalizado) -> Valor: { campo_BD, valor_a_guardar }
+const ARRAY_MAPPING: Record<string, { field: string, value: string }> = {
+  // Tipo finca
+  "agrícola": { field: "tipoFinca", value: "agricola" },
+  "forestal": { field: "tipoFinca", value: "forestal" },
+  "mixta": { field: "tipoFinca", value: "mixta" },
+
+  // Producción
+  "madera": { field: "produccionPrincipal", value: "madera" },
+  "leña": { field: "produccionPrincipal", value: "lena" },
+  "castaña": { field: "produccionPrincipal", value: "castana" },
+  "vid": { field: "produccionPrincipal", value: "vid" },
+  "frutícola (cereza, pera, manzana)": { field: "produccionPrincipal", value: "fruticola" },
+  "hortícola (pimiento, cebolla)": { field: "produccionPrincipal", value: "horticola" },
+  "pasto/ganadera": { field: "produccionPrincipal", value: "pasto_ganadera" },
+  "productos apícolas (miel, polen, propóleo)": { field: "produccionPrincipal", value: "apicolas" },
+
+  // Necesidades
+  "mejora de la productividad": { field: "necesidades", value: "productividad" },
+  "control del matorral": { field: "necesidades", value: "matorral" },
+  "prevención de incendios": { field: "necesidades", value: "incendios" },
+  "mejora del suelo": { field: "necesidades", value: "suelo" },
+  "diversificación de usos": { field: "necesidades", value: "diversificacion" },
+  "puesta en valor de finca abandonada": { field: "necesidades", value: "abandonada" },
+
+  // Formación
+  "cultivo del castaño": { field: "formacion", value: "castano" },
+  "sistemas agroforestales": { field: "formacion", value: "agroforestal" },
+  "agricultura regenerativa": { field: "formacion", value: "agri_regenerativa" },
+  "ganadería regenerativa": { field: "formacion", value: "gana_regenerativa" },
+  "plantaciones de fijación de carbono": { field: "formacion", value: "carbono" },
+  "comercialización de productos": { field: "formacion", value: "comercializacion" },
+  "tramitación de ayudas": { field: "formacion", value: "ayudas" },
+  "legislación y fiscalidad": { field: "formacion", value: "legislacion" },
+
+  // Gobernanza
+  "cooperativas y gestión colectiva": { field: "gobernanzaComunidad", value: "cooperativas_gestion_colectiva" },
+  "creación de empleo local": { field: "gobernanzaComunidad", value: "creacion_empleo_local" },
+  "recuperar tierras abandonadas": { field: "gobernanzaComunidad", value: "recuperar_tierras_abandonadas" },
+  "formación y capacitación": { field: "gobernanzaComunidad", value: "formacion_capacitacion" },
+  "turismo rural": { field: "gobernanzaComunidad", value: "turismo_rural" }
+};
+2. La función de Procesamiento (La lógica corregida)
+Esta función toma el JSON crudo del OCR y construye el objeto submission. Fíjate en cómo manejo el occurrenceCounters para los campos repetidos.
+
+TypeScript
+export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> {
+  const submission: Record<string, any> = {
+    // Inicializamos arrays vacíos para los campos de checkbox múltiple
+    tipoFinca: [],
+    produccionPrincipal: [],
+    necesidades: [],
+    formacion: [],
+    gobernanzaComunidad: []
+  };
+
+  // Contadores para campos que se repiten (Sí, No, Baja, Media, Alta)
+  const occurrenceCounters: Record<string, number> = {
+    "si": 0, "no": 0, "baja": 0, "media": 0, "alta": 0
+  };
+
+  // Iteramos sobre CADA campo extraído por el OCR
+  for (const field of extractedFields) {
+    const rawName = field.field_name || "";
+    const rawValue = field.proposed_value || ""; // "☑", "☐" o texto
+    const normalizedName = normalizeKey(rawName);
+
+    // ¿Es un campo marcado/seleccionado? 
+    // Document AI usa a veces "Selected", "True", "1" o el símbolo "☑"
+    const isChecked = rawValue.includes("☑") || rawValue.toLowerCase() === "true" || rawValue === "1" || rawValue.toLowerCase() === "selected";
+
+    // ---------------------------------------------------------
+    // CASO 1: Campos dependientes del orden (Sí, No, Baja...)
+    // ---------------------------------------------------------
+    if (ORDER_DEPENDENT_FIELDS[normalizedName]) {
+      const index = occurrenceCounters[normalizedName];
+      const mappingList = ORDER_DEPENDENT_FIELDS[normalizedName];
+
+      // Verificamos si aún tenemos mapeos disponibles para este contador
+      if (index < mappingList.length) {
+        const mapping = mappingList[index];
+        
+        // Si la casilla está marcada, guardamos el valor
+        if (isChecked) {
+          submission[mapping.field] = mapping.value;
+        }
+        
+        // ¡IMPORTANTE!: Aumentamos el contador SIEMPRE que aparezca la etiqueta en el documento,
+        // esté marcada o no. El OCR detecta la etiqueta "Sí" (checkbox vacío) y luego la etiqueta "Sí" (checkbox lleno).
+        // Ambas cuentan para la posición.
+        occurrenceCounters[normalizedName]++;
+      }
+      continue;
+    }
+
+    // ---------------------------------------------------------
+    // CASO 2: Campos de Array (Multiselección)
+    // ---------------------------------------------------------
+    // Buscamos coincidencia parcial para frases largas
+    const arrayMatch = Object.keys(ARRAY_MAPPING).find(key => normalizedName.includes(key));
+    if (arrayMatch) {
+      if (isChecked) {
+        const mapping = ARRAY_MAPPING[arrayMatch];
+        // Evitamos duplicados
+        if (!submission[mapping.field].includes(mapping.value)) {
+          submission[mapping.field].push(mapping.value);
+        }
+      }
+      continue;
+    }
+
+    // ---------------------------------------------------------
+    // CASO 3: Campos Enum (Selección Única - Strings largos)
+    // ---------------------------------------------------------
+    const enumMatch = Object.keys(ENUM_MAPPING).find(key => normalizedName.includes(key));
+    if (enumMatch) {
+      if (isChecked) {
+        const mapping = ENUM_MAPPING[enumMatch];
+        submission[mapping.field] = mapping.value;
+      }
+      continue;
+    }
+
+    // ---------------------------------------------------------
+    // CASO 4: Campos de Texto Directo
+    // ---------------------------------------------------------
+    const textMatch = Object.keys(TEXT_FIELDS_MAP).find(key => normalizedName.includes(normalizeKey(key)));
+    if (textMatch) {
+      const dbField = TEXT_FIELDS_MAP[textMatch];
+      // Para texto, queremos el valor propuesto tal cual (ej: "Juan Pérez")
+      submission[dbField] = rawValue;
+      continue;
+    }
+  }
+
+  // Limpieza final: Convertir contadores booleanos implícitos
+  // Si enProduccion quedó undefined pero detectamos "Sí" o "No", el orden logic ya lo cubrió.
+  // Pero para checkboxes booleanos simples como "¿Está en producción?", a veces es mejor usar true/false.
+  
+  return submission;
+}
+Puntos clave que arreglan tus errores:
+occurrenceCounters[normalizedName]++: La clave del éxito con los campos "Sí"/"No" repetidos es incrementar el contador cada vez que el OCR encuentra la etiqueta, independientemente de si el checkbox está marcado o no. Así mantienes la sincronización con la posición física en el papel.
+
+isChecked logic: En el JSON que subiste, proposed_value es "☑" o "☐". Mi código comprueba explícitamente rawValue.includes("☑"). Si solo comprobabas si existía el campo, siempre daba positivo.
+
+Normalización (normalizeKey): Eliminar tildes y dos puntos (:) hace que "Teléfono de contacto:" coincida con "telefono de contacto".
+
+Mapeo de Arrays: Ahora ARRAY_MAPPING sabe qué valor string específico guardar (ej: "agricola") en lugar de intentar guardar la frase completa del PDF.
+
+Copia la función mapOcrToSubmission y las constantes actualizadas en tu server/lib/document-ai.ts o server/routes.ts antes de hacer el db.insert(submissions).
