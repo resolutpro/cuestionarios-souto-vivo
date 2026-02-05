@@ -386,65 +386,85 @@ export default function OcrReviewPage() {
 
               <Separator />
 
-              {/* Sección 4: Necesidades y Objetivos */}
+              {/* Sección 5: Interés y Compromiso */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                     <Target className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">4. Necesidades y Objetivos de la Finca</h3>
-                    <p className="text-sm text-muted-foreground">Identifica las necesidades y el modelo agroforestal deseado</p>
+                    <h3 className="text-lg font-bold">5. Interés y Compromiso</h3>
+                    <p className="text-sm text-muted-foreground">Nivel de participación e interés en el proyecto</p>
                   </div>
                 </div>
                 <div className="grid gap-4 pl-12">
-                  {renderFieldInput("Principales necesidades de la finca (puede marcar varias)", "necesidades", "checkbox-array", [
-                    { value: "productividad", label: "Mejora de la productividad" },
-                    { value: "matorral", label: "Control del matorral" },
-                    { value: "incendios", label: "Prevención de incendios" },
-                    { value: "suelo", label: "Mejora del suelo" },
-                    { value: "diversificacion", label: "Diversificación de usos" },
-                    { value: "abandonada", label: "Puesta en valor de finca abandonada" },
-                    { value: "otras", label: "Otras necesidades" }
-                  ])}
-                  {((formData.necesidades as string[]) || []).includes("otras") && renderFieldInput("Especificar otras necesidades", "necesidadesOtras")}
-
-                  {renderFieldInput("¿Qué modelo agroforestal le gustaría conseguir? (puede marcar varios)", "objetivosModelo", "checkbox-array", [
-                    { value: "produccion", label: "Producción" },
-                    { value: "biodiversidad", label: "Conservación del paisaje y biodiversidad" },
-                    { value: "costes", label: "Reducción de costes de mantenimiento" },
-                    { value: "social", label: "Nuevos modelos de impacto social" },
-                    { value: "otros", label: "Otros objetivos" }
-                  ])}
-                  {((formData.objetivosModelo as string[]) || []).includes("otros") && renderFieldInput("Especificar otros objetivos", "otrosObjetivosTexto")}
-
-                  {renderFieldInput("Grado de interés en el modelo de gestión", "gradoInteres", "enum", [
+                  {renderFieldInput("Grado de interés en participar en un proyecto piloto", "gradoInteres", "enum", [
                     { value: "alto", label: "Alto" },
                     { value: "medio", label: "Medio" },
                     { value: "bajo", label: "Bajo" }
                   ])}
-                  {renderFieldInput("Nivel de actuación deseado", "nivelActuacion", "enum", [
-                    { value: "solo_diagnostico", label: "Solo diagnóstico" },
-                    { value: "implantacion", label: "Implantación" }
+                  {renderFieldInput("¿En qué nivel estaría dispuesto/a que actúe el proyecto?", "nivelActuacion", "enum", [
+                    { value: "solo_diagnostico", label: "Solo diagnóstico y propuesta técnica" },
+                    { value: "implantacion", label: "Implantación de actuaciones piloto" }
                   ])}
-                  {renderFieldInput("Situación respecto al relevo generacional", "relevoGeneracional", "enum", [
-                    { value: "si_familiares", label: "Sí, con familiares" },
-                    { value: "no_riesgo_abandono", label: "No, con riesgo de abandono" },
-                    { value: "buscando", label: "Buscando relevo" }
+                  {renderFieldInput("Disponibilidad para (marcar lo que proceda)", "disponibilidad", "checkbox-array", [
+                    { value: "reuniones", label: "Asistir a reuniones o talleres" },
+                    { value: "visitas", label: "Recibir visitas técnicas en la finca" },
+                    { value: "seguimiento", label: "Colaborar en el seguimiento del proyecto" }
+                  ])}
+                  {renderFieldInput("¿Existe previsión de relevo generacional en los próximos 5-10 años?", "relevoGeneracional", "enum", [
+                    { value: "si_familiares", label: "Sí, hay familiares o personas interesadas" },
+                    { value: "no_riesgo_abandono", label: "No, existe riesgo de abandono tras mi jubilación" },
+                    { value: "buscando", label: "Estoy buscando a alguien que quiera trabajarla" }
                   ])}
                 </div>
               </div>
 
               <Separator />
 
-              {/* Sección 5: Formación y Social */}
+              {/* Sección 6: Necesidades Formativas */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">6. Necesidades Formativas</h3>
+                    <p className="text-sm text-muted-foreground">Formación que le gustaría recibir</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 pl-12">
+                  {renderFieldInput("¿En qué aspectos le gustaría recibir formación?", "formacion", "checkbox-array", [
+                    { value: "castano", label: "Cultivo del castaño" },
+                    { value: "agroforestal", label: "Sistemas agroforestales" },
+                    { value: "agri_regenerativa", label: "Agricultura regenerativa" },
+                    { value: "gana_regenerativa", label: "Ganadería regenerativa" },
+                    { value: "carbono", label: "Plantaciones de fijación de carbono" },
+                    { value: "comercializacion", label: "Comercialización de productos" },
+                    { value: "ayudas", label: "Tramitación de ayudas" },
+                    { value: "legislacion", label: "Legislación y fiscalidad" }
+                  ])}
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Otra formación</Label>
+                    <Input 
+                      value={(formData.formacionOtro as string) || ""} 
+                      onChange={(e) => handleFieldChange("formacionOtro", e.target.value)}
+                      placeholder="Especificar..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Sección 7: Dimensión Social */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">5. Formación y Dimensión Social</h3>
+                    <h3 className="text-lg font-bold">7. Dimensión Social</h3>
                     <p className="text-sm text-muted-foreground">Capacitación y visión comunitaria</p>
                   </div>
                 </div>
@@ -478,14 +498,14 @@ export default function OcrReviewPage() {
 
               <Separator />
 
-              {/* Sección 6: Consentimiento RGPD */}
+              {/* Sección 8: Consentimiento RGPD */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                     <CheckCircle className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">6. Consentimiento y RGPD</h3>
+                    <h3 className="text-lg font-bold">8. Consentimiento y RGPD</h3>
                     <p className="text-sm text-muted-foreground">Tratamiento de datos personales</p>
                   </div>
                 </div>
