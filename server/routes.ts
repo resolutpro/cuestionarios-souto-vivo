@@ -130,7 +130,12 @@ const ENUM_MAPPING: Record<number, Record<string, { field: string, value: string
     "sí pero solo para acciones puntuales": { field: "colaboracion", value: "si_puntuales" },
     "no prefiero mantener la gestión de mi finca": { field: "colaboracion", value: "no_individual" },
     "no lo sé necesitaría asesoramiento jurídico": { field: "colaboracion", value: "no_se_asesoria" },
-    "sí aunque dificulta las tareas es asumible": { field: "minifundio", value: "si_asumible" }
+    "sí aunque dificulta las tareas es asumible": { field: "minifundio", value: "si_asumible" },
+    "sí mucho": { field: "minifundio", value: "si_mucho" },
+    "no el tamaño es adecuado": { field: "minifundio", value: "no_adecuado" },
+    "sí bajo un contrato de arrendamiento o cesión": { field: "cesionTierras", value: "si_contrato" },
+    "sí pero solo a alguien del municipio": { field: "cesionTierras", value: "si_municipio" },
+    "no no tengo interés en ceder la gestión": { field: "cesionTierras", value: "no" }
   }
 };
 
@@ -177,7 +182,8 @@ const ARRAY_MAPPING: Record<number, Record<string, { field: string, value: strin
     "creando una cooperativa o agrupación de productores local": { field: "gobernanzaComunidad", value: "cooperativa" },
     "recuperando caminos y accesos que beneficien a toda la vecindad": { field: "gobernanzaComunidad", value: "caminos" },
     "organizando hacenderas o jornadas de trabajo comunitario": { field: "gobernanzaComunidad", value: "hacenderas" },
-    "facilitando el contacto entre propietarios que no viven": { field: "gobernanzaComunidad", value: "contacto" }
+    "facilitando el contacto entre propietarios que no viven": { field: "gobernanzaComunidad", value: "contacto" },
+    "facilitando el contacto entre propietarios que no viven en el pueblo y jovenes": { field: "gobernanzaComunidad", value: "contacto" }
   }
 };
 
@@ -284,8 +290,14 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     
     // Fallback simple para consentimientos (Pág 6)
     if (pageNumber === 6 && isChecked) {
-      if (normalizedName.includes("consiento")) submission.consentimientoTratamiento = true;
-      if (normalizedName.includes("acepto")) submission.aceptoComunicaciones = true;
+      if (normalizedName.includes("consiento el tratamiento de mis datos personales") || 
+          normalizedName.includes("consiento el tratamiento de mis datos")) {
+        submission.consentimientoTratamiento = true;
+      }
+      if (normalizedName.includes("acepto recibir comunicaciones relacionadas") || 
+          normalizedName.includes("acepto recibir comunicaciones")) {
+        submission.aceptoComunicaciones = true;
+      }
     }
   }
 
