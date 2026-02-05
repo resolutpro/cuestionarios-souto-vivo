@@ -10,123 +10,175 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// 1. CAMPOS DE TEXTO SIMPLE
-const TEXT_FIELDS_MAP: Record<string, string> = {
-  "nombre y apellidos": "nombreApellidos",
-  "telefono de contacto": "telefono",
-  "correo electronico": "email",
-  "localidad": "localidad",
-  "referencias catastrales": "referenciasCatastrales",
-  "referencia catastral": "referenciasCatastrales"
-};
-
-// 2. CAMPOS DEPENDIENTES DEL ORDEN (Contadores por página)
-const ORDER_DEPENDENT_MAPPING: Record<number, Record<string, { field: string, value: any }[]>> = {
+// 1. CAMPOS DE TEXTO SIMPLE (Mapas por página para mayor precisión)
+const PAGE_TEXT_FIELDS: Record<number, Record<string, string>> = {
   1: {
-    "si": [
-      { field: "titularidadCompartida", value: "si" },
-      { field: "agricultorTituloPrincipal", value: "si" }
-    ],
-    "no": [
-      { field: "titularidadCompartida", value: "no" },
-      { field: "agricultorTituloPrincipal", value: "no_complementario" }
-    ]
+    "nombre y apellidos": "nombreApellidos",
+    "telefono de contacto": "telefono",
+    "correo electronico": "email",
+    "localidad": "localidad",
+    "pertenece usted a alguna asociacion": "asociacionPertenece"
   },
   2: {
-    "si": [{ field: "enProduccion", value: true }],
-    "no": [{ field: "enProduccion", value: false }]
+    "referencia catastral o poligono y parcela": "referenciasCatastrales",
+    "otro especificar uso suelo": "usoSueloOtro"
   },
   3: {
-    "alto": [{ field: "gradoInteres", value: "alto" }],
-    "medio": [{ field: "gradoInteres", value: "medio" }],
-    "bajo": [{ field: "gradoInteres", value: "bajo" }]
+    "otras especificar necesidades": "necesidadesOtras",
+    "otros objetivos especificar": "otrosObjetivosTexto"
+  },
+  4: {
+    "otros especificar formacion": "formacionOtro"
   },
   5: {
-    "si mucho": [{ field: "minifundio", value: "si_mucho" }],
-    "si aunque es asumible": [{ field: "minifundio", value: "si_asumible" }],
-    "no el tamaño es adecuado": [{ field: "minifundio", value: "no_adecuado" }]
+    "otros": "gobernanzaOtro",
+    "comentarios dudas o propuestas adicionales": "observaciones"
   }
 };
 
-// 3. MAPEO DE ENUMS (Radio buttons únicos con nombres largos)
-const ENUM_MAPPING: Record<string, { field: string, value: string }> = {
-  "mujer": { field: "genero", value: "mujer" },
-  "hombre": { field: "genero", value: "hombre" },
-  "menos de 35 años": { field: "edad", value: "menos_35" },
-  "entre 35 y 50 años": { field: "edad", value: "entre_35_50" },
-  "mas de 50 años": { field: "edad", value: "mas_50" },
-  "más de 50 años": { field: "edad", value: "mas_50" },
-  "propietario/a": { field: "relacionFinca", value: "propietario" },
-  "arrendatario/a": { field: "relacionFinca", value: "arrendatario" },
-  "gestor/a": { field: "relacionFinca", value: "gestor" },
-  "menos de 1 ha": { field: "superficieCategoria", value: "menos_1ha" },
-  "entre 1 y 5 ha": { field: "superficieCategoria", value: "entre_1_5ha" },
-  "mas de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
-  "más de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
-  "cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
-  "pasto": { field: "usoSuelo", value: "pasto" },
-  "monte": { field: "usoSuelo", value: "monte" },
-  "sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
-  "sin uso / abandonada": { field: "usoSuelo", value: "sin_uso" },
-  "bueno (acceso con vehículo)": { field: "acceso", value: "bueno" },
-  "regular": { field: "acceso", value: "regular" },
-  "malo": { field: "acceso", value: "malo" },
-  "si": { field: "agua", value: "si" },
-  "no": { field: "agua", value: "no" },
-  "no lo se": { field: "agua", value: "no_se" },
-  "baja": { field: "pendiente", value: "baja" },
-  "media": { field: "pendiente", value: "media" },
-  "alta": { field: "pendiente", value: "alta" },
-  "pedregosidad baja": { field: "pedregosidad", value: "baja" },
-  "pedregosidad media": { field: "pedregosidad", value: "media" },
-  "pedregosidad alta": { field: "pedregosidad", value: "alta" },
-  "solo diagnostico y propuesta tecnica": { field: "nivelActuacion", value: "solo_diagnostico" },
-  "implantacion de actuaciones piloto": { field: "nivelActuacion", value: "implantacion" },
-  "asistir a reuniones o talleres": { field: "colaboracion", value: "reuniones" },
-  "si hay familiares o personas interesadas": { field: "relevoGeneracional", value: "si" },
-  "no existe riesgo de abandono tras mi jubilacion": { field: "relevoGeneracional", value: "no" },
-  "estoy buscando a alguien que quiera trabajarla": { field: "relevoGeneracional", value: "buscando" },
-  "si pero solo para acciones puntuales": { field: "disponibilidad", value: "puntual" },
-  "no prefiero mantener la gestion de mi finca de forma totalmente individual": { field: "disponibilidad", value: "individual" },
-  "no lo se necesitaria asesoramiento juridico y tecnico previo": { field: "disponibilidad", value: "asesoramiento" },
-  "si bajo contrato de arrendamiento o cesion": { field: "cesionTierras", value: "si_contrato" },
-  "si bajo un contrato de arrendamiento o cesion": { field: "cesionTierras", value: "si_contrato" },
-  "si pero solo a alguien del municipio": { field: "cesionTierras", value: "si_municipio" },
-  "no no tengo interés en ceder la gestión": { field: "cesionTierras", value: "no" }
+// 2. CAMPOS POSICIONALES (Contadores por página)
+// Esta lógica se basa estrictamente en el orden de aparición por página
+const POSITIONAL_MAPPING: Record<number, Record<string, { field: string, value: any }[]>> = {
+  1: {
+    "si": [
+      { field: "titularidadCompartida", value: "si" }, // 1º Sí
+      { field: "agricultorTituloPrincipal", value: "si" } // 2º Sí
+    ],
+    "no": [
+      { field: "titularidadCompartida", value: "no" }, // 1º No
+      { field: "agricultorTituloPrincipal", value: "no_complementario" } // 2º No
+    ]
+  },
+  2: {
+    "si": [
+      { field: "enProduccion", value: true }, // 1º Sí
+      { field: "agua", value: "si" } // 2º Sí
+    ],
+    "no": [
+      { field: "enProduccion", value: false }, // 1º No
+      { field: "agua", value: "no" } // 2º No
+    ],
+    "baja": [
+      { field: "pendiente", value: "baja" }, // 1º Baja
+      { field: "pedregosidad", value: "baja" } // 2º Baja
+    ],
+    "media": [
+      { field: "pendiente", value: "media" }, // 1º Media
+      { field: "pedregosidad", value: "media" } // 2º Media
+    ],
+    "alta": [
+      { field: "pendiente", value: "alta" }, // 1º Alta
+      { field: "pedregosidad", value: "alta" } // 2º Alta
+    ]
+  },
+  5: {
+    "si": [
+      { field: "minifundio", value: "si_mucho" }, // 1º Sí ("Sí, mucho") - El prompt dice 3º Sí global pero es 1º de pág 5
+      { field: "cesionTierras", value: "si_contrato" }, // 2º Sí ("Sí, bajo un contrato...")
+      { field: "cesionTierras", value: "si_municipio" } // 3º Sí ("Sí, pero solo a alguien...")
+    ],
+    "no": [
+      { field: "minifundio", value: "no_adecuado" }, // 1º No ("No, el tamaño es adecuado")
+      { field: "cesionTierras", value: "no" } // 2º No ("No, no tengo interés...")
+    ]
+  }
+};
+
+// 3. MAPEO DE ENUMS (Checkboxes de opción única o radio buttons con texto distintivo)
+const ENUM_MAPPING: Record<number, Record<string, { field: string, value: string }>> = {
+  1: {
+    "mujer": { field: "genero", value: "mujer" },
+    "hombre": { field: "genero", value: "hombre" },
+    "otros/es": { field: "genero", value: "otros" },
+    "menos de 35 años": { field: "edad", value: "menos_35" },
+    "entre 35 y 50 años": { field: "edad", value: "entre_35_50" },
+    "más de 50 años": { field: "edad", value: "mas_50" },
+    "propietario/a": { field: "relacionFinca", value: "propietario" },
+    "arrendatario/a": { field: "relacionFinca", value: "arrendatario" },
+    "gestor/a": { field: "relacionFinca", value: "gestor" },
+    "otra (especificar)": { field: "relacionFinca", value: "otra" }
+  },
+  2: {
+    "menos de 1 ha": { field: "superficieCategoria", value: "menos_1ha" },
+    "entre 1 y 5 ha": { field: "superficieCategoria", value: "entre_1_5ha" },
+    "más de 5 ha": { field: "superficieCategoria", value: "mas_5ha" },
+    "otra (especificar)": { field: "superficieCategoria", value: "otra" },
+    "no lo sé / pendiente de consultar": { field: "superficieCategoria", value: "no_se" },
+    "cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
+    "pasto": { field: "usoSuelo", value: "pasto" },
+    "monte": { field: "usoSuelo", value: "monte" },
+    "sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
+    "bueno (acceso con vehículo)": { field: "acceso", value: "bueno" },
+    "regular": { field: "acceso", value: "regular" },
+    "malo": { field: "acceso", value: "malo" },
+    "no lo sé": { field: "agua", value: "no_se" }
+  },
+  3: {
+    "alto": { field: "gradoInteres", value: "alto" },
+    "medio": { field: "gradoInteres", value: "medio" },
+    "bajo": { field: "gradoInteres", value: "bajo" }
+  },
+  4: {
+    "solo diagnóstico y propuesta técnica": { field: "nivelActuacion", value: "solo_diagnostico" },
+    "implantación de actuaciones piloto": { field: "nivelActuacion", value: "implantacion" },
+    "sí hay familiares o personas interesadas": { field: "relevoGeneracional", value: "si_familiares" },
+    "no existe riesgo de abandono tras mi jubilación": { field: "relevoGeneracional", value: "no_riesgo_abandono" },
+    "estoy buscando a alguien que quiera trabajarla": { field: "relevoGeneracional", value: "buscando" }
+  },
+  5: {
+    "sí me interesa integrarme en una agrupación": { field: "colaboracion", value: "si_agrupacion" },
+    "sí pero solo para acciones puntuales": { field: "colaboracion", value: "si_puntuales" },
+    "no prefiero mantener la gestión de mi finca": { field: "colaboracion", value: "no_individual" },
+    "no lo sé necesitaría asesoramiento jurídico": { field: "colaboracion", value: "no_se_asesoria" },
+    "sí aunque dificulta las tareas es asumible": { field: "minifundio", value: "si_asumible" }
+  }
 };
 
 // 4. MAPEO DE ARRAYS (Checkboxes Múltiples)
-const ARRAY_MAPPING: Record<string, { field: string, value: string }> = {
-  "agrícola": { field: "tipoFinca", value: "agricola" },
-  "forestal": { field: "tipoFinca", value: "forestal" },
-  "mixta": { field: "tipoFinca", value: "mixta" },
-  "madera": { field: "produccionPrincipal", value: "madera" },
-  "leña": { field: "produccionPrincipal", value: "lena" },
-  "castaña": { field: "produccionPrincipal", value: "castana" },
-  "vid": { field: "produccionPrincipal", value: "vid" },
-  "frutícola (cereza, pera, manzana)": { field: "produccionPrincipal", value: "fruticola" },
-  "hortícola (pimiento, cebolla)": { field: "produccionPrincipal", value: "horticola" },
-  "pasto/ganadera": { field: "produccionPrincipal", value: "pasto_ganadera" },
-  "productos apícolas (miel, polen, propóleo)": { field: "produccionPrincipal", value: "apicolas" },
-  "mejora de la productividad": { field: "necesidades", value: "productividad" },
-  "control del matorral": { field: "necesidades", value: "matorral" },
-  "prevención de incendios": { field: "necesidades", value: "incendios" },
-  "mejora del suelo": { field: "necesidades", value: "suelo" },
-  "diversificación de usos": { field: "necesidades", value: "diversificacion" },
-  "puesta en valor de finca abandonada": { field: "necesidades", value: "abandonada" },
-  "cultivo del castaño": { field: "formacion", value: "castano" },
-  "sistemas agroforestales": { field: "formacion", value: "agroforestal" },
-  "agricultura regenerativa": { field: "formacion", value: "agri_regenerativa" },
-  "ganadería regenerativa": { field: "formacion", value: "gana_regenerativa" },
-  "plantaciones de fijación de carbono": { field: "formacion", value: "carbono" },
-  "comercialización de productos": { field: "formacion", value: "comercializacion" },
-  "tramitación de ayudas": { field: "formacion", value: "ayudas" },
-  "legislación y fiscalidad": { field: "formacion", value: "legislacion" },
-  "cooperativas y gestión colectiva": { field: "gobernanzaComunidad", value: "cooperativas_gestion_colectiva" },
-  "creación de empleo local": { field: "gobernanzaComunidad", value: "creacion_empleo_local" },
-  "recuperar tierras abandonadas": { field: "gobernanzaComunidad", value: "recuperar_tierras_abandonadas" },
-  "formación y capacitación": { field: "gobernanzaComunidad", value: "formacion_capacitacion" },
-  "turismo rural": { field: "gobernanzaComunidad", value: "turismo_rural" }
+const ARRAY_MAPPING: Record<number, Record<string, { field: string, value: string }>> = {
+  2: {
+    "agrícola": { field: "tipoFinca", value: "agricola" },
+    "forestal": { field: "tipoFinca", value: "forestal" },
+    "mixta": { field: "tipoFinca", value: "mixta" }
+  },
+  3: {
+    "mejora de la productividad": { field: "necesidades", value: "productividad" },
+    "control del matorral": { field: "necesidades", value: "matorral" },
+    "prevención de incendios": { field: "necesidades", value: "incendios" },
+    "mejora del suelo": { field: "necesidades", value: "suelo" },
+    "diversificación de usos": { field: "necesidades", value: "diversificacion" },
+    "puesta en valor de finca abandonada": { field: "necesidades", value: "abandonada" },
+    "madera": { field: "produccionPrincipal", value: "madera" },
+    "leña": { field: "produccionPrincipal", value: "lena" },
+    "castaña": { field: "produccionPrincipal", value: "castana" },
+    "vid": { field: "produccionPrincipal", value: "vid" },
+    "frutícola (cereza, pera, manzana)": { field: "produccionPrincipal", value: "fruticola" },
+    "hortícola (pimiento, cebolla)": { field: "produccionPrincipal", value: "horticola" },
+    "pasto / ganadera": { field: "produccionPrincipal", value: "pasto_ganadera" },
+    "productos apícolas (miel, polen, propóleo)": { field: "produccionPrincipal", value: "apicolas" },
+    "conservación del paisaje y la biodiversidad": { field: "objetivosModelo", value: "conservacion" },
+    "reducción de costes de mantenimiento": { field: "objetivosModelo", value: "reduccion_costes" },
+    "nuevos modelos agroforestales de impacto social": { field: "objetivosModelo", value: "impacto_social" }
+  },
+  4: {
+    "asistir a reuniones o talleres": { field: "disponibilidad", value: "reuniones" },
+    "recibir visitas técnicas en la finca": { field: "disponibilidad", value: "visitas" },
+    "colaborar en el seguimiento del proyecto": { field: "disponibilidad", value: "seguimiento" },
+    "cultivo del castaño": { field: "formacion", value: "castano" },
+    "sistemas agroforestales": { field: "formacion", value: "agroforestal" },
+    "agricultura regenerativa": { field: "formacion", value: "agri_regenerativa" },
+    "ganadería regenerativa": { field: "formacion", value: "gana_regenerativa" },
+    "plantaciones de fijación de carbono": { field: "formacion", value: "carbono" },
+    "comercialización de productos": { field: "formacion", value: "comercializacion" },
+    "tramitación de ayudas": { field: "formacion", value: "ayudas" },
+    "legislación y fiscalidad": { field: "formacion", value: "legislacion" }
+  },
+  5: {
+    "creando una cooperativa o agrupación de productores local": { field: "gobernanzaComunidad", value: "cooperativa" },
+    "recuperando caminos y accesos que beneficien a toda la vecindad": { field: "gobernanzaComunidad", value: "caminos" },
+    "organizando hacenderas o jornadas de trabajo comunitario": { field: "gobernanzaComunidad", value: "hacenderas" },
+    "facilitando el contacto entre propietarios que no viven": { field: "gobernanzaComunidad", value: "contacto" }
+  }
 };
 
 const normalizeKey = (text: string) => {
@@ -135,7 +187,7 @@ const normalizeKey = (text: string) => {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove accents/tildes
-    .replace(/[:.]/g, '')
+    .replace(/[^a-z0-9\s/]/g, "") // Remove special chars except slash
     .replace(/\s+/g, ' '); // Normalize spaces
 };
 
@@ -145,35 +197,21 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     produccionPrincipal: [],
     necesidades: [],
     formacion: [],
-    gobernanzaComunidad: []
+    gobernanzaComunidad: [],
+    objetivosModelo: [],
+    disponibilidad: []
   };
 
-  // Contadores con ámbito de página
+  // Contadores por página para campos posicionales
   const pageCounters: Record<number, Record<string, number>> = {};
-
-  // Pre-normalize mapping keys
-  const normalizedTextFields = Object.fromEntries(
-    Object.entries(TEXT_FIELDS_MAP).map(([k, v]) => [normalizeKey(k), v])
-  );
-  const normalizedEnumMapping = Object.fromEntries(
-    Object.entries(ENUM_MAPPING).map(([k, v]) => [normalizeKey(k), v])
-  );
-  const normalizedArrayMapping = Object.fromEntries(
-    Object.entries(ARRAY_MAPPING).map(([k, v]) => [normalizeKey(k), v])
-  );
 
   for (const field of extractedFields) {
     const rawName = field.key || field.fieldName || field.field_name || "";
-    const rawValue = (field.value || field.proposedValue || field.proposed_value || "").toString();
+    const rawValue = (field.proposedValue || field.value || field.manualValue || "").toString();
     const normalizedName = normalizeKey(rawName);
     const pageNumber = field.pageNumber || 1;
 
     if (!normalizedName) continue;
-
-    // Inicializar contadores para la página si no existen
-    if (!pageCounters[pageNumber]) {
-      pageCounters[pageNumber] = { "si": 0, "no": 0, "baja": 0, "media": 0, "alta": 0 };
-    }
 
     const isChecked = rawValue.includes("☑") || 
                      rawValue.toLowerCase() === "true" || 
@@ -181,11 +219,14 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
                      rawValue.toLowerCase() === "selected" ||
                      rawValue === "checked";
 
-    // 1. Order dependent fields (Page-Scoped Mapping)
-    const pageMapping = ORDER_DEPENDENT_MAPPING[pageNumber];
-    if (pageMapping && pageMapping[normalizedName]) {
+    // 1. Campos Posicionales (Si/No/Baja/Media/Alta)
+    const pagePosMapping = POSITIONAL_MAPPING[pageNumber];
+    if (pagePosMapping && pagePosMapping[normalizedName]) {
+      if (!pageCounters[pageNumber]) pageCounters[pageNumber] = {};
+      if (pageCounters[pageNumber][normalizedName] === undefined) pageCounters[pageNumber][normalizedName] = 0;
+
       const index = pageCounters[pageNumber][normalizedName];
-      const mappingList = pageMapping[normalizedName];
+      const mappingList = pagePosMapping[normalizedName];
 
       if (index < mappingList.length) {
         const mapping = mappingList[index];
@@ -197,38 +238,54 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
       continue;
     }
 
-    // 2. Text fields
-    const textMatchKey = Object.keys(normalizedTextFields).find(k => 
-      normalizedName === k || normalizedName.includes(k) || k.includes(normalizedName)
-    );
-    if (textMatchKey) {
-      const dbField = normalizedTextFields[textMatchKey];
-      if (!submission[dbField] || rawValue.length > submission[dbField].length) {
-        submission[dbField] = rawValue;
+    // 2. Text Fields (Page Specific)
+    const pageTextFields = PAGE_TEXT_FIELDS[pageNumber];
+    if (pageTextFields) {
+      const textMatchKey = Object.keys(pageTextFields).find(k => 
+        normalizedName === normalizeKey(k) || normalizedName.includes(normalizeKey(k))
+      );
+      if (textMatchKey) {
+        const dbField = pageTextFields[textMatchKey];
+        // Don't overwrite if it's already set by a better value
+        if (!submission[dbField] || rawValue.length > (submission[dbField]?.length || 0)) {
+          submission[dbField] = rawValue;
+        }
+        continue;
       }
-      continue;
     }
 
-    // 3. Enum Mapping
-    const enumMatchKey = Object.keys(normalizedEnumMapping).find(k => 
-      normalizedName === k || normalizedName.includes(k)
-    );
-    if (enumMatchKey && isChecked) {
-      const mapping = normalizedEnumMapping[enumMatchKey];
-      submission[mapping.field] = mapping.value;
-      continue;
+    // 3. Enum Mapping (Page Specific)
+    const pageEnumMapping = ENUM_MAPPING[pageNumber];
+    if (pageEnumMapping && isChecked) {
+      const enumMatchKey = Object.keys(pageEnumMapping).find(k => 
+        normalizedName === normalizeKey(k) || normalizedName.includes(normalizeKey(k))
+      );
+      if (enumMatchKey) {
+        const mapping = pageEnumMapping[enumMatchKey];
+        submission[mapping.field] = mapping.value;
+        continue;
+      }
     }
 
-    // 4. Array Mapping
-    const arrayMatchKey = Object.keys(normalizedArrayMapping).find(k => 
-      normalizedName === k || normalizedName.includes(k) || k.includes(normalizedName)
-    );
-    if (arrayMatchKey && isChecked) {
-      const mapping = normalizedArrayMapping[arrayMatchKey];
-      if (!submission[mapping.field].includes(mapping.value)) {
-        submission[mapping.field].push(mapping.value);
+    // 4. Array Mapping (Page Specific)
+    const pageArrayMapping = ARRAY_MAPPING[pageNumber];
+    if (pageArrayMapping && isChecked) {
+      const arrayMatchKey = Object.keys(pageArrayMapping).find(k => 
+        normalizedName === normalizeKey(k) || normalizedName.includes(normalizeKey(k))
+      );
+      if (arrayMatchKey) {
+        const mapping = pageArrayMapping[arrayMatchKey];
+        if (!submission[mapping.field].includes(mapping.value)) {
+          submission[mapping.field].push(mapping.value);
+        }
+        continue;
       }
-      continue;
+    }
+    
+    // Fallback simple para consentimientos (Pág 6)
+    if (pageNumber === 6 && isChecked) {
+      if (normalizedName.includes("consiento")) submission.consentimientoTratamiento = true;
+      if (normalizedName.includes("acepto")) submission.aceptoComunicaciones = true;
     }
   }
 
