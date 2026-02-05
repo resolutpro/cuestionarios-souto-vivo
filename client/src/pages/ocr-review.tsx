@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { OcrJob, Submission } from "@shared/schema";
@@ -102,7 +103,39 @@ export default function OcrReviewPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const renderFieldInput = (label: string, field: keyof Submission, type: "text" | "enum" | "boolean" = "text", options?: string[]) => {
+  const renderFieldInput = (label: string, field: keyof Submission, type: "text" | "enum" | "boolean" | "checkbox-array" = "text", options?: { value: string; label: string }[]) => {
+    if (type === "checkbox-array" && options) {
+      const currentValues = (formData[field] as string[]) || [];
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">{label}</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {options.map((option) => (
+              <div key={option.value} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`${field}-${option.value}`}
+                  checked={currentValues.includes(option.value)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      handleFieldChange(field, [...currentValues, option.value]);
+                    } else {
+                      handleFieldChange(field, currentValues.filter((v) => v !== option.value));
+                    }
+                  }}
+                />
+                <label
+                  htmlFor={`${field}-${option.value}`}
+                  className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  {option.label}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     const value = (formData[field] as string) || "";
 
     return (
@@ -115,7 +148,7 @@ export default function OcrReviewPage() {
             </SelectTrigger>
             <SelectContent>
               {options.map(opt => (
-                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -231,13 +264,32 @@ export default function OcrReviewPage() {
                   </div>
                   {renderFieldInput("Localidad", "localidad")}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFieldInput("Género", "genero", "enum", ["mujer", "hombre", "otros"])}
-                    {renderFieldInput("Edad", "edad", "enum", ["menos_35", "entre_35_50", "mas_50"])}
+                    {renderFieldInput("Género", "genero", "enum", [
+                      { value: "mujer", label: "Mujer" },
+                      { value: "hombre", label: "Hombre" },
+                      { value: "otros", label: "Otros" }
+                    ])}
+                    {renderFieldInput("Edad", "edad", "enum", [
+                      { value: "menos_35", label: "<35" },
+                      { value: "entre_35_50", label: "35-50" },
+                      { value: "mas_50", label: ">50" }
+                    ])}
                   </div>
-                  {renderFieldInput("Relación con la finca", "relacionFinca", "enum", ["propietario", "arrendatario", "gestor", "otra"])}
+                  {renderFieldInput("Relación con la finca", "relacionFinca", "enum", [
+                    { value: "propietario", label: "Propietario/a" },
+                    { value: "arrendatario", label: "Arrendatario/a" },
+                    { value: "gestor", label: "Gestor/a" },
+                    { value: "otra", label: "Otra" }
+                  ])}
                   {formData.relacionFinca === "otra" && renderFieldInput("Especificar otra relación", "relacionFincaOtra")}
-                  {formData.relacionFinca === "propietario" && renderFieldInput("¿La finca está bajo régimen de Titularidad Compartida?", "titularidadCompartida", "enum", ["si", "no"])}
-                  {renderFieldInput("¿Es usted agricultor/a a título principal?", "agricultorTituloPrincipal", "enum", ["si", "no_complementario"])}
+                  {formData.relacionFinca === "propietario" && renderFieldInput("¿La finca está bajo régimen de Titularidad Compartida?", "titularidadCompartida", "enum", [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                  ])}
+                  {renderFieldInput("¿Es usted agricultor/a a título principal?", "agricultorTituloPrincipal", "enum", [
+                    { value: "si", label: "Sí" },
+                    { value: "no_complementario", label: "No, es complementario" }
+                  ])}
                   {renderFieldInput("¿Pertenece a alguna asociación?", "asociacionPertenece")}
                 </div>
               </div>
@@ -264,59 +316,155 @@ export default function OcrReviewPage() {
                       placeholder="Introduzca las referencias catastrales..."
                     />
                   </div>
-                  {renderFieldInput("Superficie aproximada disponible", "superficieCategoria", "enum", ["menos_1ha", "entre_1_5ha", "mas_5ha", "otra", "no_se"])}
+                  {renderFieldInput("Superficie aproximada disponible", "superficieCategoria", "enum", [
+                    { value: "menos_1ha", label: "Menos de 1 ha" },
+                    { value: "entre_1_5ha", label: "Entre 1 y 5 ha" },
+                    { value: "mas_5ha", label: "Más de 5 ha" },
+                    { value: "otra", label: "Otra" },
+                    { value: "no_se", label: "No lo sé" }
+                  ])}
                   {formData.superficieCategoria === "otra" && renderFieldInput("Especificar superficie", "superficieOtra")}
-                  {renderFieldInput("Uso actual del suelo", "usoSuelo", "enum", ["cultivo_activo", "pasto", "monte", "sin_uso", "otro"])}
+                  
+                  {renderFieldInput("Tipo de finca (puede marcar varias)", "tipoFinca", "checkbox-array", [
+                    { value: "agricola", label: "Agrícola" },
+                    { value: "forestal", label: "Forestal" },
+                    { value: "mixta", label: "Mixta" }
+                  ])}
+
+                  {renderFieldInput("Uso actual del suelo", "usoSuelo", "enum", [
+                    { value: "cultivo_activo", label: "Cultivo activo" },
+                    { value: "pasto", label: "Pasto" },
+                    { value: "monte", label: "Monte" },
+                    { value: "sin_uso", label: "Sin uso / Abandonada" },
+                    { value: "otro", label: "Otro" }
+                  ])}
                   {formData.usoSuelo === "otro" && renderFieldInput("Especificar otro uso", "usoSueloOtro")}
                   {renderFieldInput("¿Está la finca actualmente en producción?", "enProduccion", "boolean")}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Sección 3: Condiciones de la finca */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">3. Condiciones de la finca</h3>
+                    <p className="text-sm text-muted-foreground">Infraestructura y orografía</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 pl-12">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFieldInput("Acceso a la finca", "acceso", "enum", ["bueno", "regular", "malo"])}
-                    {renderFieldInput("Disponibilidad de agua", "agua", "enum", ["si", "no", "no_se"])}
+                    {renderFieldInput("Acceso a la finca", "acceso", "enum", [
+                      { value: "bueno", label: "Bueno" },
+                      { value: "regular", label: "Regular" },
+                      { value: "malo", label: "Malo" }
+                    ])}
+                    {renderFieldInput("Disponibilidad de agua", "agua", "enum", [
+                      { value: "si", label: "Sí" },
+                      { value: "no", label: "No" },
+                      { value: "no_se", label: "No lo sé" }
+                    ])}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderFieldInput("Grado de pendiente", "pendiente", "enum", ["baja", "media", "alta"])}
-                    {renderFieldInput("Grado de pedregosidad", "pedregosidad", "enum", ["baja", "media", "alta"])}
+                    {renderFieldInput("Grado de pendiente", "pendiente", "enum", [
+                      { value: "baja", label: "Baja" },
+                      { value: "media", label: "Media" },
+                      { value: "alta", label: "Alta" }
+                    ])}
+                    {renderFieldInput("Grado de pedregosidad", "pedregosidad", "enum", [
+                      { value: "baja", label: "Baja" },
+                      { value: "media", label: "Media" },
+                      { value: "alta", label: "Alta" }
+                    ])}
                   </div>
                 </div>
               </div>
 
               <Separator />
 
-              {/* Sección 3: Necesidades y Objetivos */}
+              {/* Sección 4: Necesidades y Objetivos */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                     <Target className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">3. Necesidades y Objetivos</h3>
-                    <p className="text-sm text-muted-foreground">Intereses y planes para la explotación</p>
+                    <h3 className="text-lg font-bold">4. Necesidades y Objetivos de la Finca</h3>
+                    <p className="text-sm text-muted-foreground">Identifica las necesidades y el modelo agroforestal deseado</p>
                   </div>
                 </div>
                 <div className="grid gap-4 pl-12">
-                  {renderFieldInput("Grado de interés en el modelo de gestión", "gradoInteres", "enum", ["alto", "medio", "bajo"])}
-                  {renderFieldInput("Nivel de actuación deseado", "nivelActuacion", "enum", ["solo_diagnostico", "implantacion"])}
-                  {renderFieldInput("Situación respecto al relevo generacional", "relevoGeneracional", "enum", ["si_familiares", "no_riesgo_abandono", "buscando"])}
+                  {renderFieldInput("Principales necesidades de la finca (puede marcar varias)", "necesidades", "checkbox-array", [
+                    { value: "productividad", label: "Mejora de la productividad" },
+                    { value: "matorral", label: "Control del matorral" },
+                    { value: "incendios", label: "Prevención de incendios" },
+                    { value: "suelo", label: "Mejora del suelo" },
+                    { value: "diversificacion", label: "Diversificación de usos" },
+                    { value: "abandonada", label: "Puesta en valor de finca abandonada" },
+                    { value: "otras", label: "Otras necesidades" }
+                  ])}
+                  {((formData.necesidades as string[]) || []).includes("otras") && renderFieldInput("Especificar otras necesidades", "necesidadesOtras")}
+
+                  {renderFieldInput("¿Qué modelo agroforestal le gustaría conseguir? (puede marcar varios)", "objetivosModelo", "checkbox-array", [
+                    { value: "produccion", label: "Producción" },
+                    { value: "biodiversidad", label: "Conservación del paisaje y biodiversidad" },
+                    { value: "costes", label: "Reducción de costes de mantenimiento" },
+                    { value: "social", label: "Nuevos modelos de impacto social" },
+                    { value: "otros", label: "Otros objetivos" }
+                  ])}
+                  {((formData.objetivosModelo as string[]) || []).includes("otros") && renderFieldInput("Especificar otros objetivos", "otrosObjetivosTexto")}
+
+                  {renderFieldInput("Grado de interés en el modelo de gestión", "gradoInteres", "enum", [
+                    { value: "alto", label: "Alto" },
+                    { value: "medio", label: "Medio" },
+                    { value: "bajo", label: "Bajo" }
+                  ])}
+                  {renderFieldInput("Nivel de actuación deseado", "nivelActuacion", "enum", [
+                    { value: "solo_diagnostico", label: "Solo diagnóstico" },
+                    { value: "implantacion", label: "Implantación" }
+                  ])}
+                  {renderFieldInput("Situación respecto al relevo generacional", "relevoGeneracional", "enum", [
+                    { value: "si_familiares", label: "Sí, con familiares" },
+                    { value: "no_riesgo_abandono", label: "No, con riesgo de abandono" },
+                    { value: "buscando", label: "Buscando relevo" }
+                  ])}
                 </div>
               </div>
 
               <Separator />
 
-              {/* Sección 4: Formación y Social */}
+              {/* Sección 5: Formación y Social */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">4. Formación y Dimensión Social</h3>
+                    <h3 className="text-lg font-bold">5. Formación y Dimensión Social</h3>
                     <p className="text-sm text-muted-foreground">Capacitación y visión comunitaria</p>
                   </div>
                 </div>
                 <div className="grid gap-4 pl-12">
-                  {renderFieldInput("Preferencia de colaboración", "colaboracion", "enum", ["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"])}
-                  {renderFieldInput("¿Considera el minifundio un problema?", "minifundio", "enum", ["si_mucho", "si_asumible", "no_adecuado"])}
-                  {renderFieldInput("¿Estaría dispuesto/a a la cesión de tierras?", "cesionTierras", "enum", ["si_contrato", "si_municipio", "no"])}
+                  {renderFieldInput("Preferencia de colaboración", "colaboracion", "enum", [
+                    { value: "si_agrupacion", label: "Sí, a través de agrupación de propietarios" },
+                    { value: "si_puntuales", label: "Sí, colaboraciones puntuales" },
+                    { value: "no_individual", label: "No, prefiero gestión individual" },
+                    { value: "no_se_asesoria", label: "No lo sé, necesito asesoría" }
+                  ])}
+                  {renderFieldInput("¿Considera el minifundio un problema?", "minifundio", "enum", [
+                    { value: "si_mucho", label: "Sí, es un gran problema" },
+                    { value: "si_asumible", label: "Sí, pero es asumible" },
+                    { value: "no_adecuado", label: "No, el tamaño es adecuado" }
+                  ])}
+                  {renderFieldInput("¿Estaría dispuesto/a a la cesión de tierras?", "cesionTierras", "enum", [
+                    { value: "si_contrato", label: "Sí, bajo contrato de arrendamiento" },
+                    { value: "si_municipio", label: "Sí, a través del banco de tierras municipal" },
+                    { value: "no", label: "No" }
+                  ])}
                   <div className="space-y-1">
                     <Label className="text-sm font-medium">Observaciones adicionales</Label>
                     <Textarea 
@@ -324,6 +472,51 @@ export default function OcrReviewPage() {
                       onChange={(e) => handleFieldChange("observaciones", e.target.value)}
                       placeholder="Cualquier otra información relevante..."
                     />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Sección 6: Consentimiento RGPD */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">6. Consentimiento y RGPD</h3>
+                    <p className="text-sm text-muted-foreground">Tratamiento de datos personales</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 pl-12">
+                  <div className="flex items-start space-x-3 space-y-0 border p-4 rounded-md">
+                    <Checkbox
+                      id="consentimientoTratamiento"
+                      checked={!!formData.consentimientoTratamiento}
+                      onCheckedChange={(checked) => handleFieldChange("consentimientoTratamiento", !!checked)}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label htmlFor="consentimientoTratamiento" className="text-sm font-medium cursor-pointer">
+                        Acepto el tratamiento de mis datos personales *
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Sus datos serán tratados conforme al RGPD para la gestión del proyecto Souto Vivo
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3 space-y-0 border p-4 rounded-md">
+                    <Checkbox
+                      id="aceptoComunicaciones"
+                      checked={!!formData.aceptoComunicaciones}
+                      onCheckedChange={(checked) => handleFieldChange("aceptoComunicaciones", !!checked)}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label htmlFor="aceptoComunicaciones" className="text-sm font-medium cursor-pointer">
+                        Acepto recibir comunicaciones sobre el proyecto
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
