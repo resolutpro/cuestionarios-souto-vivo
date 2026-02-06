@@ -1,6 +1,5 @@
 import { db } from "./db";
 import { submissions, eq } from "@shared/schema";
-} from "@shared/schema";
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -1247,18 +1246,20 @@ export async function registerRoutes(
       console.log("Recibido webhook de Google Forms (ID: " + data.id + ")");
 
       // 1. OBTENER EL ID EXTERNO
-      // Es vital que el script de Google envíe un 'id'. Si no, generamos uno, 
+      // Es vital que el script de Google envíe un 'id'. Si no, generamos uno,
       // pero la detección de duplicados solo funcionará si 'data.id' es constante.
-      const externalId = data.id || `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const externalId = data.id;
 
       // 2. CHECK DE DUPLICADOS (LO MÁS IMPORTANTE)
       const existing = await storage.getSubmissionByExternalId(externalId);
       if (existing) {
-        console.log(`Cuestionario duplicado detectado (${externalId}). Ignorando.`);
-        return res.status(200).json({ 
-          success: true, 
-          message: "Duplicado ignorado", 
-          id: existing.id 
+        console.log(
+          `Cuestionario duplicado detectado (${externalId}). Ignorando.`,
+        );
+        return res.status(200).json({
+          success: true,
+          message: "Duplicado ignorado",
+          id: existing.id,
         });
       }
 
@@ -1318,7 +1319,6 @@ export async function registerRoutes(
 
       console.log(`Cuestionario creado correctamente: ${submission.id}`);
       return res.status(201).json({ success: true, id: submission.id });
-
     } catch (error) {
       console.error("Error en webhook:", error);
       return res.status(500).json({ error: "Error al procesar el webhook" });

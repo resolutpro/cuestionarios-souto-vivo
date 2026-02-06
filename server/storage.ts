@@ -529,5 +529,5 @@ export class DatabaseStorage implements IStorage {
       lastSyncAt: config?.lastSyncAt?.toISOString() || null,
     };
   }
-  storage = new DatabaseStorage();
 }
+export const storage = new DatabaseStorage();
