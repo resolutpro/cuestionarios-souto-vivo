@@ -423,6 +423,22 @@ export default function OcrReviewPage() {
                     { value: "social", label: "Nuevos modelos de impacto social" },
                     { value: "otros", label: "Otros objetivos" }
                   ])}
+
+                  {((formData.objetivosModelo as string[]) || []).includes("produccion") && (
+                    <div className="pl-6 border-l-2 border-primary/20 space-y-4 pt-2 pb-2">
+                      {renderFieldInput("Si es producción, marcar opciones:", "produccionOpciones", "checkbox-array", [
+                        { value: "madera", label: "Madera" },
+                        { value: "lena", label: "Leña" },
+                        { value: "castana", label: "Castaña" },
+                        { value: "vid", label: "Vid" },
+                        { value: "fruticola", label: "Frutícola (cereza, pera, manzana)" },
+                        { value: "horticola", label: "Hortícola (pimiento, cebolla)" },
+                        { value: "pasto_ganadera", label: "Pasto/ganadera" },
+                        { value: "apicola", label: "Productos apícolas (miel, polen, propóleo)" },
+                      ])}
+                    </div>
+                  )}
+
                   {((formData.objetivosModelo as string[]) || []).includes("otros") && (
                     <div className="space-y-1">
                       <Label className="text-sm font-medium">Especificar otros objetivos</Label>
