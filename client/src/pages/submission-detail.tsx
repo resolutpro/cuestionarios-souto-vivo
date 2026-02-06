@@ -83,7 +83,7 @@ const labelMappings: Record<string, string> = {
   caminos: "Recuperando caminos y accesos que beneficien a toda la vecindad",
   hacenderas: "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario",
   contacto: "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra",
-  otros: "Otros",
+  otros_gobernanza: "Otros",
   productividad: "Mejora de la productividad",
   matorral: "Control del matorral",
   incendios: "Prevención de incendios",
@@ -497,7 +497,7 @@ export default function SubmissionDetailPage() {
                   "caminos", 
                   "hacenderas", 
                   "contacto", 
-                  "otros"
+                  "otros_gobernanza"
                 ].map((opcion) => {
                   const isSelected = submission.gobernanzaComunidad?.includes(opcion);
                   return (
