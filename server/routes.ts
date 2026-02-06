@@ -1,3 +1,6 @@
+import { db } from "./db";
+import { submissions, eq } from "@shared/schema";
+} from "@shared/schema";
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -1238,38 +1241,40 @@ export async function registerRoutes(
         .json({ error: "Error al conectar con Google Forms" });
     }
   });
-  // Añadir este endpoint específico para Google Forms
-  // Sustituir el endpoint existente /api/webhooks/google-forms por este:
   app.post("/api/webhooks/google-forms", async (req, res) => {
     try {
       const data = req.body;
-      console.log(
-        "Recibido webhook de Google Forms:",
-        JSON.stringify(data).substring(0, 100) + "...",
-      );
+      console.log("Recibido webhook de Google Forms (ID: " + data.id + ")");
 
-      // 1. Guardar log para las Estadísticas (Arregla el contador a 0)
-      const config = await storage.getGoogleFormsConfig();
-      const formId = config?.formId || "formulario_externo";
-      // Generamos un ID único para el log
-      const responseId = `resp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      // 1. OBTENER EL ID EXTERNO
+      // Es vital que el script de Google envíe un 'id'. Si no, generamos uno, 
+      // pero la detección de duplicados solo funcionará si 'data.id' es constante.
+      const externalId = data.id || `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const rawResponse = await storage.saveGoogleFormsResponse(
-        responseId,
-        formId,
-        JSON.stringify(data),
-      );
+      // 2. CHECK DE DUPLICADOS (LO MÁS IMPORTANTE)
+      const existing = await storage.getSubmissionByExternalId(externalId);
+      if (existing) {
+        console.log(`Cuestionario duplicado detectado (${externalId}). Ignorando.`);
+        return res.status(200).json({ 
+          success: true, 
+          message: "Duplicado ignorado", 
+          id: existing.id 
+        });
+      }
 
-      // 2. Mapeo de datos (Tu lógica original)
+      // 3. MAPEO DE DATOS
       const submissionData = {
         source: "google_forms",
         status: "aprobado",
+        externalId: externalId, // <--- AQUÍ SE GUARDA EL ID EN SUBMISSIONS
+
         nombreApellidos: data.nombre,
         localidad: data.localidad,
         telefono: data.telefono,
         email: data.email,
         genero: data.genero,
         edad: data.edad,
+
         relacionFinca: data.relacion,
         relacionFincaOtra: data.relacion_otra,
         agricultorTituloPrincipal: data.atp,
@@ -1277,7 +1282,7 @@ export async function registerRoutes(
 
         referenciasCatastrales: data.catastro,
         superficieCategoria: data.superficie,
-        tipoFinca: data.tipo_finca,
+        tipoFinca: data.tipo_finca, // Asegúrate de que esto sea un array o string según tu DB
         usoSuelo: data.uso_suelo,
         enProduccion: data.en_produccion === "si",
 
@@ -1306,21 +1311,18 @@ export async function registerRoutes(
         fechaFirma: new Date(),
       };
 
-      // 3. Crear el cuestionario real
+      // 4. CREAR DIRECTAMENTE LA SUBMISSION (Sin pasar por tablas intermedias)
+      // Usamos 'as any' para evitar conflictos estrictos de tipos si algún enum no coincide exacto,
+      // pero asegúrate de que los valores coincidan con los de tu schema.ts
       const submission = await storage.createSubmission(submissionData as any);
 
-      // 4. Marcar el log como procesado (Para que salga en verde en las stats)
-      await storage.markGoogleFormsResponseProcessed(
-        rawResponse.id,
-        submission.id,
-      );
-
+      console.log(`Cuestionario creado correctamente: ${submission.id}`);
       return res.status(201).json({ success: true, id: submission.id });
+
     } catch (error) {
       console.error("Error en webhook:", error);
-      return res.status(500).json({ error: "Error al guardar" });
+      return res.status(500).json({ error: "Error al procesar el webhook" });
     }
   });
-
   return httpServer;
 }

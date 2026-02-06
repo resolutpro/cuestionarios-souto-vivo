@@ -1,13 +1,13 @@
 import { eq, desc, sql, and, or, ilike } from "drizzle-orm";
 import { db } from "./db";
-import { 
-  users, 
+import {
+  users,
   submissions,
   ocrJobs,
   ocrExtractedFields,
   googleFormsConfig,
   googleFormsResponses,
-  type User, 
+  type User,
   type InsertUser,
   type Submission,
   type InsertSubmission,
@@ -17,49 +17,111 @@ import {
   type OcrExtractedField,
   type InsertOcrExtractedField,
   type GoogleFormsConfig,
-  type GoogleFormsResponse
+  type GoogleFormsResponse,
 } from "@shared/schema";
 
 export interface IStorage {
+  getSubmissionByExternalId(
+    externalId: string,
+  ): Promise<Submission | undefined>;
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   getSubmission(id: string): Promise<Submission | undefined>;
-  updateSubmissionStatus(id: string, status: string, updatedBy?: string): Promise<Submission | undefined>;
-  getSubmissions(filters: SubmissionFilter, page: number, limit: number): Promise<{ submissions: Submission[]; total: number; pages: number }>;
+  updateSubmissionStatus(
+    id: string,
+    status: string,
+    updatedBy?: string,
+  ): Promise<Submission | undefined>;
+  getSubmissions(
+    filters: SubmissionFilter,
+    page: number,
+    limit: number,
+  ): Promise<{ submissions: Submission[]; total: number; pages: number }>;
   getRecentSubmissions(limit: number): Promise<Submission[]>;
-  getStats(): Promise<{ total: number; byStatus: Record<string, number>; bySource: Record<string, number>; recentLocalities: string[] }>;
-  
+  getStats(): Promise<{
+    total: number;
+    byStatus: Record<string, number>;
+    bySource: Record<string, number>;
+    recentLocalities: string[];
+  }>;
+
   createOcrJob(job: InsertOcrJob): Promise<OcrJob>;
   getOcrJobs(): Promise<OcrJob[]>;
   getOcrJob(id: string): Promise<OcrJob | undefined>;
-  updateOcrJobStatus(id: string, status: string, submissionId?: string): Promise<OcrJob | undefined>;
-  updateOcrJobWithDuplicateWarning(id: string, warning: string): Promise<OcrJob | undefined>;
-  createOcrExtractedField(field: InsertOcrExtractedField): Promise<OcrExtractedField>;
+  updateOcrJobStatus(
+    id: string,
+    status: string,
+    submissionId?: string,
+  ): Promise<OcrJob | undefined>;
+  updateOcrJobWithDuplicateWarning(
+    id: string,
+    warning: string,
+  ): Promise<OcrJob | undefined>;
+  createOcrExtractedField(
+    field: InsertOcrExtractedField,
+  ): Promise<OcrExtractedField>;
   getOcrExtractedFields(ocrJobId: string): Promise<OcrExtractedField[]>;
-  updateOcrExtractedField(id: string, data: Partial<OcrExtractedField>): Promise<OcrExtractedField | undefined>;
-  checkDuplicates(nombre: string, telefono: string, localidad: string, referencias: string): Promise<Submission[]>;
-  
+  updateOcrExtractedField(
+    id: string,
+    data: Partial<OcrExtractedField>,
+  ): Promise<OcrExtractedField | undefined>;
+  checkDuplicates(
+    nombre: string,
+    telefono: string,
+    localidad: string,
+    referencias: string,
+  ): Promise<Submission[]>;
+
   getGoogleFormsConfig(): Promise<GoogleFormsConfig | null>;
-  saveGoogleFormsConfig(formId: string, formUrl?: string): Promise<GoogleFormsConfig>;
-  toggleGoogleFormsActive(isActive: boolean): Promise<GoogleFormsConfig | undefined>;
+  saveGoogleFormsConfig(
+    formId: string,
+    formUrl?: string,
+  ): Promise<GoogleFormsConfig>;
+  toggleGoogleFormsActive(
+    isActive: boolean,
+  ): Promise<GoogleFormsConfig | undefined>;
   updateGoogleFormsLastSync(): Promise<void>;
   getGoogleFormsResponses(): Promise<GoogleFormsResponse[]>;
-  saveGoogleFormsResponse(responseId: string, formId: string, rawData: string): Promise<GoogleFormsResponse>;
-  markGoogleFormsResponseProcessed(id: string, submissionId: string): Promise<void>;
-  getGoogleFormsStats(): Promise<{ totalResponses: number; processedResponses: number; pendingResponses: number; lastSyncAt: string | null }>;
+  saveGoogleFormsResponse(
+    responseId: string,
+    formId: string,
+    rawData: string,
+  ): Promise<GoogleFormsResponse>;
+  markGoogleFormsResponseProcessed(
+    id: string,
+    submissionId: string,
+  ): Promise<void>;
+  getGoogleFormsStats(): Promise<{
+    totalResponses: number;
+    processedResponses: number;
+    pendingResponses: number;
+    lastSyncAt: string | null;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
+  async getSubmissionByExternalId(
+    externalId: string,
+  ): Promise<Submission | undefined> {
+    const [submission] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.externalId, externalId));
+    return submission;
+  }
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user;
   }
 
@@ -68,17 +130,28 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createSubmission(insertSubmission: InsertSubmission): Promise<Submission> {
-    const [submission] = await db.insert(submissions).values(insertSubmission).returning();
+  async createSubmission(
+    insertSubmission: InsertSubmission,
+  ): Promise<Submission> {
+    const [submission] = await db
+      .insert(submissions)
+      .values(insertSubmission)
+      .returning();
     return submission;
   }
 
   async getSubmission(id: string): Promise<Submission | undefined> {
-    const [submission] = await db.select().from(submissions).where(eq(submissions.id, id));
+    const [submission] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, id));
     return submission;
   }
 
-  async updateSubmission(id: string, data: Partial<Submission>): Promise<Submission | undefined> {
+  async updateSubmission(
+    id: string,
+    data: Partial<Submission>,
+  ): Promise<Submission | undefined> {
     const [submission] = await db
       .update(submissions)
       .set({ ...data, updatedAt: new Date() })
@@ -87,20 +160,28 @@ export class DatabaseStorage implements IStorage {
     return submission;
   }
 
-  async updateSubmissionStatus(id: string, status: string, updatedBy?: string): Promise<Submission | undefined> {
+  async updateSubmissionStatus(
+    id: string,
+    status: string,
+    updatedBy?: string,
+  ): Promise<Submission | undefined> {
     const [updated] = await db
       .update(submissions)
-      .set({ 
-        status: status as any, 
+      .set({
+        status: status as any,
         updatedAt: new Date(),
-        updatedBy 
+        updatedBy,
       })
       .where(eq(submissions.id, id))
       .returning();
     return updated;
   }
 
-  async getSubmissions(filters: SubmissionFilter, page: number, limit: number): Promise<{ submissions: Submission[]; total: number; pages: number }> {
+  async getSubmissions(
+    filters: SubmissionFilter,
+    page: number,
+    limit: number,
+  ): Promise<{ submissions: Submission[]; total: number; pages: number }> {
     const conditions = [];
 
     if (filters.status) {
@@ -119,10 +200,17 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(submissions.relacionFinca, filters.relacionFinca));
     }
     if (filters.agricultorTituloPrincipal) {
-      conditions.push(eq(submissions.agricultorTituloPrincipal, filters.agricultorTituloPrincipal));
+      conditions.push(
+        eq(
+          submissions.agricultorTituloPrincipal,
+          filters.agricultorTituloPrincipal,
+        ),
+      );
     }
     if (filters.superficieCategoria) {
-      conditions.push(eq(submissions.superficieCategoria, filters.superficieCategoria));
+      conditions.push(
+        eq(submissions.superficieCategoria, filters.superficieCategoria),
+      );
     }
     if (filters.usoSuelo) {
       conditions.push(eq(submissions.usoSuelo, filters.usoSuelo));
@@ -157,8 +245,8 @@ export class DatabaseStorage implements IStorage {
           ilike(submissions.nombreApellidos, `%${filters.search}%`),
           ilike(submissions.email, `%${filters.search}%`),
           ilike(submissions.localidad, `%${filters.search}%`),
-          ilike(submissions.referenciasCatastrales, `%${filters.search}%`)
-        )
+          ilike(submissions.referenciasCatastrales, `%${filters.search}%`),
+        ),
       );
     }
 
@@ -192,22 +280,29 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getStats(): Promise<{ total: number; byStatus: Record<string, number>; bySource: Record<string, number>; recentLocalities: string[] }> {
-    const [countResult] = await db.select({ count: sql<number>`count(*)::int` }).from(submissions);
+  async getStats(): Promise<{
+    total: number;
+    byStatus: Record<string, number>;
+    bySource: Record<string, number>;
+    recentLocalities: string[];
+  }> {
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(submissions);
     const total = countResult?.count || 0;
 
     const statusCounts = await db
-      .select({ 
-        status: submissions.status, 
-        count: sql<number>`count(*)::int` 
+      .select({
+        status: submissions.status,
+        count: sql<number>`count(*)::int`,
       })
       .from(submissions)
       .groupBy(submissions.status);
 
     const sourceCounts = await db
-      .select({ 
-        source: submissions.source, 
-        count: sql<number>`count(*)::int` 
+      .select({
+        source: submissions.source,
+        count: sql<number>`count(*)::int`,
       })
       .from(submissions)
       .groupBy(submissions.source);
@@ -215,7 +310,9 @@ export class DatabaseStorage implements IStorage {
     const localities = await db
       .selectDistinct({ localidad: submissions.localidad })
       .from(submissions)
-      .where(sql`${submissions.localidad} IS NOT NULL AND ${submissions.localidad} != ''`)
+      .where(
+        sql`${submissions.localidad} IS NOT NULL AND ${submissions.localidad} != ''`,
+      )
       .limit(10);
 
     const byStatus: Record<string, number> = {};
@@ -229,7 +326,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     const recentLocalities = localities
-      .map(l => l.localidad)
+      .map((l) => l.localidad)
       .filter((l): l is string => l !== null);
 
     return { total, byStatus, bySource, recentLocalities };
@@ -249,45 +346,86 @@ export class DatabaseStorage implements IStorage {
     return job;
   }
 
-  async updateOcrJobStatus(id: string, status: string, submissionId?: string): Promise<OcrJob | undefined> {
+  async updateOcrJobStatus(
+    id: string,
+    status: string,
+    submissionId?: string,
+  ): Promise<OcrJob | undefined> {
     const updateData: any = { status: status as any, updatedAt: new Date() };
     if (submissionId) updateData.submissionId = submissionId;
-    const [updated] = await db.update(ocrJobs).set(updateData).where(eq(ocrJobs.id, id)).returning();
+    const [updated] = await db
+      .update(ocrJobs)
+      .set(updateData)
+      .where(eq(ocrJobs.id, id))
+      .returning();
     return updated;
   }
 
-  async updateOcrJobWithDuplicateWarning(id: string, warning: string): Promise<OcrJob | undefined> {
-    const [updated] = await db.update(ocrJobs)
+  async updateOcrJobWithDuplicateWarning(
+    id: string,
+    warning: string,
+  ): Promise<OcrJob | undefined> {
+    const [updated] = await db
+      .update(ocrJobs)
       .set({ duplicateWarning: warning, updatedAt: new Date() })
       .where(eq(ocrJobs.id, id))
       .returning();
     return updated;
   }
 
-  async createOcrExtractedField(field: InsertOcrExtractedField): Promise<OcrExtractedField> {
-    const [result] = await db.insert(ocrExtractedFields).values(field).returning();
+  async createOcrExtractedField(
+    field: InsertOcrExtractedField,
+  ): Promise<OcrExtractedField> {
+    const [result] = await db
+      .insert(ocrExtractedFields)
+      .values(field)
+      .returning();
     return result;
   }
 
   async getOcrExtractedFields(ocrJobId: string): Promise<OcrExtractedField[]> {
-    return db.select().from(ocrExtractedFields).where(eq(ocrExtractedFields.ocrJobId, ocrJobId));
+    return db
+      .select()
+      .from(ocrExtractedFields)
+      .where(eq(ocrExtractedFields.ocrJobId, ocrJobId));
   }
 
-  async updateOcrExtractedField(id: string, data: Partial<OcrExtractedField>): Promise<OcrExtractedField | undefined> {
-    const [updated] = await db.update(ocrExtractedFields).set(data).where(eq(ocrExtractedFields.id, id)).returning();
+  async updateOcrExtractedField(
+    id: string,
+    data: Partial<OcrExtractedField>,
+  ): Promise<OcrExtractedField | undefined> {
+    const [updated] = await db
+      .update(ocrExtractedFields)
+      .set(data)
+      .where(eq(ocrExtractedFields.id, id))
+      .returning();
     return updated;
   }
 
-  async checkDuplicates(nombre: string, telefono: string, localidad: string, referencias: string): Promise<Submission[]> {
+  async checkDuplicates(
+    nombre: string,
+    telefono: string,
+    localidad: string,
+    referencias: string,
+  ): Promise<Submission[]> {
     const conditions = [];
-    if (nombre) conditions.push(ilike(submissions.nombreApellidos, `%${nombre}%`));
+    if (nombre)
+      conditions.push(ilike(submissions.nombreApellidos, `%${nombre}%`));
     if (telefono) conditions.push(eq(submissions.telefono, telefono));
-    if (localidad) conditions.push(ilike(submissions.localidad, `%${localidad}%`));
-    if (referencias) conditions.push(ilike(submissions.referenciasCatastrales, `%${referencias}%`));
-    
+    if (localidad)
+      conditions.push(ilike(submissions.localidad, `%${localidad}%`));
+    if (referencias)
+      conditions.push(
+        ilike(submissions.referenciasCatastrales, `%${referencias}%`),
+      );
+
     if (conditions.length === 0) return [];
-    
-    return db.select().from(submissions).where(or(...conditions)).limit(5);
+
+    return db
+      .select()
+      .from(submissions)
+      .where(or(...conditions))
+      .limit(5);
   }
 
   async getGoogleFormsConfig(): Promise<GoogleFormsConfig | null> {
@@ -295,23 +433,33 @@ export class DatabaseStorage implements IStorage {
     return config || null;
   }
 
-  async saveGoogleFormsConfig(formId: string, formUrl?: string): Promise<GoogleFormsConfig> {
+  async saveGoogleFormsConfig(
+    formId: string,
+    formUrl?: string,
+  ): Promise<GoogleFormsConfig> {
     const existing = await this.getGoogleFormsConfig();
     if (existing) {
-      const [updated] = await db.update(googleFormsConfig)
+      const [updated] = await db
+        .update(googleFormsConfig)
         .set({ formId, formUrl: formUrl || null })
         .where(eq(googleFormsConfig.id, existing.id))
         .returning();
       return updated;
     }
-    const [created] = await db.insert(googleFormsConfig).values({ formId, formUrl }).returning();
+    const [created] = await db
+      .insert(googleFormsConfig)
+      .values({ formId, formUrl })
+      .returning();
     return created;
   }
 
-  async toggleGoogleFormsActive(isActive: boolean): Promise<GoogleFormsConfig | undefined> {
+  async toggleGoogleFormsActive(
+    isActive: boolean,
+  ): Promise<GoogleFormsConfig | undefined> {
     const config = await this.getGoogleFormsConfig();
     if (!config) return undefined;
-    const [updated] = await db.update(googleFormsConfig)
+    const [updated] = await db
+      .update(googleFormsConfig)
       .set({ isActive })
       .where(eq(googleFormsConfig.id, config.id))
       .returning();
@@ -321,39 +469,65 @@ export class DatabaseStorage implements IStorage {
   async updateGoogleFormsLastSync(): Promise<void> {
     const config = await this.getGoogleFormsConfig();
     if (config) {
-      await db.update(googleFormsConfig)
+      await db
+        .update(googleFormsConfig)
         .set({ lastSyncAt: new Date() })
         .where(eq(googleFormsConfig.id, config.id));
     }
   }
 
   async getGoogleFormsResponses(): Promise<GoogleFormsResponse[]> {
-    return db.select().from(googleFormsResponses).orderBy(desc(googleFormsResponses.createdAt)).limit(50);
+    return db
+      .select()
+      .from(googleFormsResponses)
+      .orderBy(desc(googleFormsResponses.createdAt))
+      .limit(50);
   }
 
-  async saveGoogleFormsResponse(responseId: string, formId: string, rawData: string): Promise<GoogleFormsResponse> {
-    const [result] = await db.insert(googleFormsResponses).values({ responseId, formId, rawData }).returning();
+  async saveGoogleFormsResponse(
+    responseId: string,
+    formId: string,
+    rawData: string,
+  ): Promise<GoogleFormsResponse> {
+    const [result] = await db
+      .insert(googleFormsResponses)
+      .values({ responseId, formId, rawData })
+      .returning();
     return result;
   }
 
-  async markGoogleFormsResponseProcessed(id: string, submissionId: string): Promise<void> {
-    await db.update(googleFormsResponses)
+  async markGoogleFormsResponseProcessed(
+    id: string,
+    submissionId: string,
+  ): Promise<void> {
+    await db
+      .update(googleFormsResponses)
       .set({ processedAt: new Date(), submissionId })
       .where(eq(googleFormsResponses.id, id));
   }
 
-  async getGoogleFormsStats(): Promise<{ totalResponses: number; processedResponses: number; pendingResponses: number; lastSyncAt: string | null }> {
+  async getGoogleFormsStats(): Promise<{
+    totalResponses: number;
+    processedResponses: number;
+    pendingResponses: number;
+    lastSyncAt: string | null;
+  }> {
     const config = await this.getGoogleFormsConfig();
-    const [totalResult] = await db.select({ count: sql<number>`count(*)::int` }).from(googleFormsResponses);
-    const [processedResult] = await db.select({ count: sql<number>`count(*)::int` }).from(googleFormsResponses).where(sql`${googleFormsResponses.processedAt} IS NOT NULL`);
-    
+
+    // Ahora contamos directamente desde la tabla submissions filtrando por origen
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(submissions)
+      .where(eq(submissions.source, "google_forms"));
+
+    const total = countResult?.count || 0;
+
     return {
-      totalResponses: totalResult?.count || 0,
-      processedResponses: processedResult?.count || 0,
-      pendingResponses: (totalResult?.count || 0) - (processedResult?.count || 0),
-      lastSyncAt: config?.lastSyncAt?.toISOString() || null
+      totalResponses: total,
+      processedResponses: total, // Al entrar directo, siempre están procesadas
+      pendingResponses: 0, // Ya no hay cola intermedia
+      lastSyncAt: config?.lastSyncAt?.toISOString() || null,
     };
   }
+  storage = new DatabaseStorage();
 }
-
-export const storage = new DatabaseStorage();
