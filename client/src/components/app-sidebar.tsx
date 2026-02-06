@@ -1,12 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { 
-  Leaf, 
-  LayoutDashboard, 
-  FileText, 
-  PlusCircle, 
+import {
+  Leaf,
+  LayoutDashboard,
+  FileText,
+  PlusCircle,
   LogOut,
   Upload,
-  FileSpreadsheet
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,7 +40,7 @@ const menuItems = [
     icon: PlusCircle,
   },
   {
-    title: "Subida OCR",
+    title: "Subir escaneos",
     url: "/ocr",
     icon: Upload,
   },
@@ -63,8 +63,12 @@ export function AppSidebar() {
             <Leaf className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="font-semibold text-sidebar-foreground">Souto Vivo</h2>
-            <p className="text-xs text-muted-foreground">Gestión de Cuestionarios</p>
+            <h2 className="font-semibold text-sidebar-foreground">
+              Souto Vivo
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Gestión de Cuestionarios
+            </p>
           </div>
         </div>
       </SidebarHeader>
@@ -74,14 +78,22 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
-                const isActive = location === item.url || 
-                  (item.url !== "/" && location.startsWith(item.url) && item.url !== "/submissions/new") ||
-                  (item.url === "/submissions" && location.startsWith("/submissions/") && location !== "/submissions/new");
-                
+                const isActive =
+                  location === item.url ||
+                  (item.url !== "/" &&
+                    location.startsWith(item.url) &&
+                    item.url !== "/submissions/new") ||
+                  (item.url === "/submissions" &&
+                    location.startsWith("/submissions/") &&
+                    location !== "/submissions/new");
+
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive}>
-                      <Link href={item.url} data-testid={`link-${item.url.replace(/\//g, "-").slice(1) || "home"}`}>
+                      <Link
+                        href={item.url}
+                        data-testid={`link-${item.url.replace(/\//g, "-").slice(1) || "home"}`}
+                      >
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </Link>
@@ -102,7 +114,9 @@ export function AppSidebar() {
                   {user?.username?.charAt(0).toUpperCase() || "A"}
                 </span>
               </div>
-              <span className="text-sm font-medium">{user?.username || "Admin"}</span>
+              <span className="text-sm font-medium">
+                {user?.username || "Admin"}
+              </span>
             </div>
             <Button
               variant="ghost"

@@ -213,6 +213,7 @@ const ARRAY_MAPPING: Record<
       field: "necesidades",
       value: "abandonada",
     },
+    otras: { field: "necesidades", value: "otras" },
     otros: { field: "objetivosModelo", value: "otros" },
     madera: { field: "produccionPrincipal", value: "madera" },
     leña: { field: "produccionPrincipal", value: "lena" },
@@ -1194,23 +1195,72 @@ export async function registerRoutes(
 
   app.post("/api/google-forms/sync", requireAuth, async (req, res) => {
     try {
+      // 1. CONFIGURACIÓN
+      // Pega aquí la URL de tu "Aplicación web" de Apps Script
+      // Ejemplo: "https://script.google.com/macros/s/AKfycbx.../exec"
+      const GOOGLE_SCRIPT_URL =
+        "https://script.google.com/macros/s/AKfycbwiuSEzGuGQF9xIAw2_dmESinLkK9G2mME7URs_LO2SGwL9-jW2Gm0uqbhytINGZTOv/exec";
+
+      if (GOOGLE_SCRIPT_URL.includes("PEGAR_AQUI")) {
+        return res.status(500).json({
+          error: "Falta configurar la URL del script en server/routes.ts",
+        });
+      }
+
+      // 2. LLAMADA AL SCRIPT
+      // Enviamos la orden { action: "sync_all" } para que el script empiece a enviar datos
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync_all" }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error en Google Script: ${response.statusText}`);
+      }
+
+      const scriptResult = await response.json();
+
+      // 3. ACTUALIZAR ESTADO
       await storage.updateGoogleFormsLastSync();
+
+      // 4. RESPONDER AL CLIENTE
+      // Nota: Las respuestas llegan asíncronamente al webhook, aquí solo confirmamos el inicio.
       return res.json({
-        processed: 0,
-        message: "Sincronización completada (simulada)",
+        processed: scriptResult.processed || 0, // Si el script devuelve cuántas envió
+        message:
+          scriptResult.message || "Sincronización iniciada correctamente",
       });
     } catch (error) {
       console.error("Error syncing Google Forms:", error);
-      return res.status(500).json({ error: "Error interno del servidor" });
+      return res
+        .status(500)
+        .json({ error: "Error al conectar con Google Forms" });
     }
   });
-
   // Añadir este endpoint específico para Google Forms
+  // Sustituir el endpoint existente /api/webhooks/google-forms por este:
   app.post("/api/webhooks/google-forms", async (req, res) => {
     try {
       const data = req.body;
+      console.log(
+        "Recibido webhook de Google Forms:",
+        JSON.stringify(data).substring(0, 100) + "...",
+      );
 
-      // Mapeo exacto de los campos del formulario a tu esquema de BD
+      // 1. Guardar log para las Estadísticas (Arregla el contador a 0)
+      const config = await storage.getGoogleFormsConfig();
+      const formId = config?.formId || "formulario_externo";
+      // Generamos un ID único para el log
+      const responseId = `resp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+      const rawResponse = await storage.saveGoogleFormsResponse(
+        responseId,
+        formId,
+        JSON.stringify(data),
+      );
+
+      // 2. Mapeo de datos (Tu lógica original)
       const submissionData = {
         source: "google_forms",
         status: "aprobado",
@@ -1218,16 +1268,16 @@ export async function registerRoutes(
         localidad: data.localidad,
         telefono: data.telefono,
         email: data.email,
-        genero: data.genero, // mujer, hombre, otros
-        edad: data.edad, // menos_35, entre_35_50, mas_50
-        relacionFinca: data.relacion, // propietario, arrendatario, gestor, otra
+        genero: data.genero,
+        edad: data.edad,
+        relacionFinca: data.relacion,
         relacionFincaOtra: data.relacion_otra,
-        agricultorTituloPrincipal: data.atp, // si, no_complementario
+        agricultorTituloPrincipal: data.atp,
         asociacionPertenece: data.asociacion,
 
         referenciasCatastrales: data.catastro,
-        superficieCategoria: data.superficie, // menos_1ha, entre_1_5ha, mas_5ha, otra, no_se
-        tipoFinca: data.tipo_finca, // Array
+        superficieCategoria: data.superficie,
+        tipoFinca: data.tipo_finca,
         usoSuelo: data.uso_suelo,
         enProduccion: data.en_produccion === "si",
 
@@ -1236,9 +1286,9 @@ export async function registerRoutes(
         pendiente: data.pendiente,
         pedregosidad: data.pedregosidad,
 
-        necesidades: data.necesidades, // Array
-        objetivosModelo: data.modelos, // Array
-        produccionPrincipal: data.produccion, // Array
+        necesidades: data.necesidades,
+        objetivosModelo: data.modelos,
+        produccionPrincipal: data.produccion,
 
         gradoInteres: data.interes,
         nivelActuacion: data.nivel,
@@ -1256,7 +1306,15 @@ export async function registerRoutes(
         fechaFirma: new Date(),
       };
 
+      // 3. Crear el cuestionario real
       const submission = await storage.createSubmission(submissionData as any);
+
+      // 4. Marcar el log como procesado (Para que salga en verde en las stats)
+      await storage.markGoogleFormsResponseProcessed(
+        rawResponse.id,
+        submission.id,
+      );
+
       return res.status(201).json({ success: true, id: submission.id });
     } catch (error) {
       console.error("Error en webhook:", error);

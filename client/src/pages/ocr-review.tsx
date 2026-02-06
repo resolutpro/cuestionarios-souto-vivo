@@ -625,7 +625,7 @@ export default function OcrReviewPage() {
                           },
                           { value: "pasto_ganadera", label: "Pasto/ganadera" },
                           {
-                            value: "apicola",
+                            value: "apicolas",
                             label: "Productos apícolas (miel, polen, propóleo)",
                           },
                         ],
@@ -879,9 +879,9 @@ export default function OcrReviewPage() {
                         label: "Sí, pero solo a alguien del municipio",
                       },
                       {
-                        value: "no_interes_ceder",
+                        value: "no",
                         label: "No, no tengo interés en ceder la gestión",
-                      },
+                      }, // CAMBIADO AQUÍ
                     ],
                   )}
                   <Separator />
