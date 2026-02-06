@@ -153,6 +153,7 @@ const ARRAY_MAPPING: Record<number, Record<string, { field: string, value: strin
     "mejora del suelo": { field: "necesidades", value: "suelo" },
     "diversificación de usos": { field: "necesidades", value: "diversificacion" },
     "puesta en valor de finca abandonada": { field: "necesidades", value: "abandonada" },
+    "otros": { field: "objetivosModelo", value: "otros" },
     "madera": { field: "produccionPrincipal", value: "madera" },
     "leña": { field: "produccionPrincipal", value: "lena" },
     "castaña": { field: "produccionPrincipal", value: "castana" },
@@ -175,7 +176,7 @@ const ARRAY_MAPPING: Record<number, Record<string, { field: string, value: strin
   },
   4: {
     "asistir a reuniones o talleres": { field: "disponibilidad", value: "reuniones" },
-    "recibir visitas técnicas en la finca": { field: "disponibilidad", value: "visitas" },
+    "recibir visitas tecnicas en la finca": { field: "disponibilidad", value: "visitas" },
     "colaborar en el seguimiento del proyecto": { field: "disponibilidad", value: "seguimiento" },
     "cultivo del castaño": { field: "formacion", value: "castano" },
     "sistemas agroforestales": { field: "formacion", value: "agroforestal" },
@@ -292,8 +293,22 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
         if (!submission[mapping.field].includes(mapping.value)) {
           submission[mapping.field].push(mapping.value);
         }
+        
+        // Special case: Page 3 "Otros objetivos"
+        if (pageNumber === 3 && mapping.field === "objetivosModelo" && mapping.value === "otros") {
+          // If the "otros" checkbox is checked, we make sure it's in the array
+        }
         continue;
       }
+    }
+
+    // Special Case: If page 3 "Otros objetivos (especificar)" has text, mark "otros" in objetivosModelo
+    if (pageNumber === 3 && normalizedName === "otros objetivos especificar" && rawValue.trim().length > 0) {
+      if (!submission.objetivosModelo.includes("otros")) {
+        submission.objetivosModelo.push("otros");
+      }
+      submission.otrosObjetivosTexto = rawValue;
+      continue;
     }
     
     // Fallback simple para consentimientos (Pág 6)
