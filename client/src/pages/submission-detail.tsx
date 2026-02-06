@@ -342,10 +342,10 @@ export default function SubmissionDetailPage() {
                   { id: "agri_regenerativa", label: "Agricultura regenerativa" },
                   { id: "gana_regenerativa", label: "Ganadería regenerativa" },
                   { id: "carbono", label: "Plantaciones de fijación de carbono" },
-                  { id: "produccion", label: "Producción", check: (s: Submission) => (s.produccionPrincipal && s.produccionPrincipal.length > 0) },
-                  { id: "otros", label: "Otros", check: (s: Submission) => !!s.otrosObjetivosTexto }
+                  { id: "produccion", label: "Producción", check: (s: Submission) => !!(s.produccionPrincipal && s.produccionPrincipal.length > 0) },
+                  { id: "otros", label: "Otros", check: (s: Submission) => !!(s.otrosObjetivosTexto && s.otrosObjetivosTexto.trim().length > 0) }
                 ].map((opcion) => {
-                  const isSelected = submission.objetivosModelo?.includes(opcion.id) || (opcion.check ? opcion.check(submission) : false);
+                  const isSelected = !!submission.objetivosModelo?.includes(opcion.id) || (opcion.check ? opcion.check(submission) : false);
                   return (
                     <div key={opcion.id} className="flex items-center gap-2 text-sm">
                       {isSelected ? 
@@ -368,7 +368,7 @@ export default function SubmissionDetailPage() {
                 {[
                   "madera", "lena", "castana", "vid", "fruticola", "horticola", "pasto_ganadera", "apicolas"
                 ].map((opcion) => {
-                  const isSelected = submission.produccionPrincipal?.includes(opcion);
+                  const isSelected = !!submission.produccionPrincipal?.includes(opcion);
                   return (
                     <div key={opcion} className="flex items-center gap-2 text-sm">
                       {isSelected ? 
