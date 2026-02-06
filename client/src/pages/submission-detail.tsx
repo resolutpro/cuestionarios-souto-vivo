@@ -79,11 +79,39 @@ const labelMappings: Record<string, string> = {
   si_contrato: "Sí, bajo contrato de arrendamiento o cesión",
   si_municipio: "Sí, pero solo a alguien del municipio",
   no: "No, no tengo interés en ceder la gestión",
-  cooperativa_agrupacion: "Creando una cooperativa o agrupación de productores local",
-  recuperacion_caminos: "Recuperando caminos y accesos que beneficien a toda la vecindad",
-  hacenderas_comunitarias: "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario",
-  contacto_propietarios_jovenes: "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra",
+  cooperativa: "Creando una cooperativa o agrupación de productores local",
+  caminos: "Recuperando caminos y accesos que beneficien a toda la vecindad",
+  hacenderas: "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario",
+  contacto: "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra",
   otros: "Otros",
+  productividad: "Mejora de la productividad",
+  matorral: "Control del matorral",
+  incendios: "Prevención de incendios",
+  suelo: "Mejora del suelo",
+  diversificacion: "Diversificación de usos",
+  abandonada: "Puesta en valor de finca abandonada",
+  biodiversidad: "Conservación del paisaje y la biodiversidad",
+  reduccion_costes: "Reducción de costes de mantenimiento",
+  impacto_social: "Nuevos modelos agroforestales de impacto social",
+  madera: "Madera",
+  lena: "Leña",
+  castana: "Castaña",
+  vid: "Vid",
+  fruticola: "Frutícola (cereza, pera, manzana)",
+  horticola: "Hortícola (pimiento, cebolla)",
+  pasto_ganadera: "Pasto / ganadera",
+  apicolas: "Productos apícolas (miel, polen, propóleo)",
+  reuniones: "Asistir a reuniones o talleres",
+  visitas: "Recibir visitas técnicas en la finca",
+  seguimiento: "Colaborar en el seguimiento del proyecto",
+  castano: "Cultivo del castaño",
+  agroforestal: "Sistemas agroforestales",
+  agri_regenerativa: "Agricultura regenerativa",
+  gana_regenerativa: "Ganadería regenerativa",
+  carbono: "Plantaciones de fijación de carbono",
+  comercializacion: "Comercialización de productos",
+  ayudas: "Tramitación de ayudas",
+  legislacion: "Legislación y fiscalidad",
 };
 
 function InfoItem({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: typeof User }) {
@@ -418,10 +446,10 @@ export default function SubmissionDetailPage() {
               <p className="text-sm font-medium">Gobernanza y Comunidad ¿Cómo cree que el proyecto Souto Vivo podría mejorar la convivencia y la economía del pueblo? (Puede marcar varias opciones):</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
                 {[
-                  "cooperativa_agrupacion", 
-                  "recuperacion_caminos", 
-                  "hacenderas_comunitarias", 
-                  "contacto_propietarios_jovenes", 
+                  "cooperativa", 
+                  "caminos", 
+                  "hacenderas", 
+                  "contacto", 
                   "otros"
                 ].map((opcion) => {
                   const isSelected = submission.gobernanzaComunidad?.includes(opcion);

@@ -295,7 +295,7 @@ export function mapOcrToSubmission(extractedFields: any[]): Record<string, any> 
     }
 
     // Special Case: If page 3 "Otros objetivos (especificar)" has text, mark "otros" in objetivosModelo
-    if (pageNumber === 3 && normalizedName === "otros objetivos especificar" && rawValue.trim().length > 0) {
+    if (pageNumber === 3 && (normalizedName === "otros objetivos especificar" || normalizedName.includes("otros objetivos")) && rawValue.trim().length > 0) {
       if (!submission.objetivosModelo.includes("otros")) {
         submission.objetivosModelo.push("otros");
       }
