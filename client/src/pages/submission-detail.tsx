@@ -333,7 +333,54 @@ export default function SubmissionDetailPage() {
             )}
             <Separator />
             <ArrayInfo label="Objetivos del modelo agroforestal" values={submission.objetivosModelo} />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">¿Qué modelo agroforestal le gustaría conseguir? (puede marcar varios)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+                {[
+                  { id: "castano", label: "Cultivo del castaño" },
+                  { id: "agroforestal", label: "Sistemas agroforestales" },
+                  { id: "agri_regenerativa", label: "Agricultura regenerativa" },
+                  { id: "gana_regenerativa", label: "Ganadería regenerativa" },
+                  { id: "carbono", label: "Plantaciones de fijación de carbono" },
+                  { id: "produccion", label: "Producción", check: (s: Submission) => (s.produccionPrincipal && s.produccionPrincipal.length > 0) },
+                  { id: "otros", label: "Otros", check: (s: Submission) => !!s.otrosObjetivosTexto }
+                ].map((opcion) => {
+                  const isSelected = submission.objetivosModelo?.includes(opcion.id) || (opcion.check ? opcion.check(submission) : false);
+                  return (
+                    <div key={opcion.id} className="flex items-center gap-2 text-sm">
+                      {isSelected ? 
+                        <CheckCircle className="h-4 w-4 text-blue-600" /> : 
+                        <div className="h-4 w-4 rounded border border-muted" />
+                      }
+                      <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
+                        {opcion.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Separator />
             <ArrayInfo label="Producción principal" values={submission.produccionPrincipal} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+              {[
+                "madera", "lena", "castana", "vid", "fruticola", "horticola", "pasto_ganadera", "apicolas"
+              ].map((opcion) => {
+                const isSelected = submission.produccionPrincipal?.includes(opcion);
+                return (
+                  <div key={opcion} className="flex items-center gap-2 text-sm">
+                    {isSelected ? 
+                      <CheckCircle className="h-4 w-4 text-green-600" /> : 
+                      <div className="h-4 w-4 rounded border border-muted" />
+                    }
+                    <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
+                      {labelMappings[opcion]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
             {submission.otrosObjetivosTexto && (
               <InfoItem label="Otros objetivos" value={submission.otrosObjetivosTexto} />
             )}
