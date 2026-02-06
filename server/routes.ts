@@ -1240,22 +1240,32 @@ export async function registerRoutes(
         .json({ error: "Error al conectar con Google Forms" });
     }
   });
+  // BUSCA ESTO EN server/routes.ts Y SUSTITÚYELO COMPLETO
+
   app.post("/api/webhooks/google-forms", async (req, res) => {
     try {
       const data = req.body;
-      console.log("Recibido webhook de Google Forms (ID: " + data.id + ")");
 
-      // 1. OBTENER EL ID EXTERNO
-      // Es vital que el script de Google envíe un 'id'. Si no, generamos uno,
-      // pero la detección de duplicados solo funcionará si 'data.id' es constante.
-      const externalId = data.id;
+      // ==================================================================
+      // 🕵️ ZONA DE DEPURACIÓN EXTENSA (LOGS)
+      // ==================================================================
+      console.log("\n⬇️⬇️⬇️ RECIBIENDO NUEVO WEBHOOK DE GOOGLE FORMS ⬇️⬇️⬇️");
+      console.log(`🆔 ID Externo recibido: ${data.id}`);
 
-      // 2. CHECK DE DUPLICADOS (LO MÁS IMPORTANTE)
+      console.log(`[Relacion] Valor: "${data.relacion_finca}"`);
+
+      console.log("⬆️⬆️⬆️ FIN DE DATOS RAW ⬆️⬆️⬆️\n");
+      // ==================================================================
+
+      // 1. ID EXTERNO
+      const externalId =
+        data.id ||
+        `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // 2. EVITAR DUPLICADOS
       const existing = await storage.getSubmissionByExternalId(externalId);
       if (existing) {
-        console.log(
-          `Cuestionario duplicado detectado (${externalId}). Ignorando.`,
-        );
+        console.log(`⚠️ Duplicado detectado (${externalId}). Ignorando.`);
         return res.status(200).json({
           success: true,
           message: "Duplicado ignorado",
@@ -1263,12 +1273,13 @@ export async function registerRoutes(
         });
       }
 
-      // 3. MAPEO DE DATOS
+      // 3. MAPEO ROBUSTO (Corrige errores de tipos)
       const submissionData = {
         source: "google_forms",
         status: "aprobado",
-        externalId: externalId, // <--- AQUÍ SE GUARDA EL ID EN SUBMISSIONS
+        externalId: externalId,
 
+        // Campos simples
         nombreApellidos: data.nombre,
         localidad: data.localidad,
         telefono: data.telefono,
@@ -1276,19 +1287,40 @@ export async function registerRoutes(
         genero: data.genero,
         edad: data.edad,
 
+        // Relación
         relacionFinca: data.relacion,
         relacionFincaOtra: data.relacion_otra,
+
+        // ATP
         agricultorTituloPrincipal: data.atp,
         asociacionPertenece: data.asociacion,
-
         referenciasCatastrales: data.catastro,
-        superficieCategoria: data.superficie,
-        tipoFinca: data.tipo_finca, // Asegúrate de que esto sea un array o string según tu DB
-        usoSuelo: data.uso_suelo,
-        enProduccion: data.en_produccion === "si",
 
+        // --- SUPERFICIE ---
+        // Si llega null o undefined, no lo asignamos o ponemos null
+        superficieCategoria: data.superficie || null,
+        superficieOtra: data.superficie_otra || null,
+
+        // Array
+        tipoFinca: data.tipo_finca,
+
+        // --- USO SUELO ---
+        usoSuelo: data.uso_suelo || null,
+        usoSueloOtro: data.uso_suelo_otro || null,
+
+        // --- EN PRODUCCIÓN ---
+        // Aceptamos "si", "sí", "true" o booleano true
+        enProduccion:
+          String(data.en_produccion).toLowerCase() === "si" ||
+          String(data.en_produccion) === "true",
+
+        // Acceso
         acceso: data.acceso,
+
+        // --- AGUA ---
+        // Aseguramos que coincida con el ENUM: 'si', 'no', 'no_se'
         agua: data.agua,
+
         pendiente: data.pendiente,
         pedregosidad: data.pedregosidad,
 
@@ -1299,28 +1331,37 @@ export async function registerRoutes(
         gradoInteres: data.interes,
         nivelActuacion: data.nivel,
         disponibilidad: data.disponibilidad,
-        relevoGeneracional: data.relevo,
+
+        // --- RELEVO, COLABORACIÓN, ETC ---
+        // Si llega string vacío "", pasamos null para evitar error de Enum
+        relevoGeneracional: data.relevo || null,
+        colaboracion: data.colaboracion || null,
+        minifundio: data.minifundio || null,
+        cesionTierras: data.cesion || null,
 
         formacion: data.formacion,
-        colaboracion: data.colaboracion,
-        minifundio: data.minifundio,
-        cesionTierras: data.cesion,
         gobernanzaComunidad: data.gobernanza,
-
         observaciones: data.observaciones,
-        consentimientoTratamiento: true,
+
+        // --- LEGALES ---
+        // Convertimos a booleano real cualquier cosa que parezca true
+        consentimientoTratamiento:
+          String(data.consentimientoTratamiento) === "true" ||
+          data.consentimientoTratamiento === true,
+        aceptoComunicaciones:
+          String(data.aceptoComunicaciones) === "true" ||
+          data.aceptoComunicaciones === true,
+
         fechaFirma: new Date(),
       };
 
-      // 4. CREAR DIRECTAMENTE LA SUBMISSION (Sin pasar por tablas intermedias)
-      // Usamos 'as any' para evitar conflictos estrictos de tipos si algún enum no coincide exacto,
-      // pero asegúrate de que los valores coincidan con los de tu schema.ts
+      // 4. GUARDAR EN DB
       const submission = await storage.createSubmission(submissionData as any);
+      console.log(`✅ Cuestionario guardado exitosamente: ID ${submission.id}`);
 
-      console.log(`Cuestionario creado correctamente: ${submission.id}`);
       return res.status(201).json({ success: true, id: submission.id });
     } catch (error) {
-      console.error("Error en webhook:", error);
+      console.error("❌ ERROR CRÍTICO EN WEBHOOK:", error);
       return res.status(500).json({ error: "Error al procesar el webhook" });
     }
   });
