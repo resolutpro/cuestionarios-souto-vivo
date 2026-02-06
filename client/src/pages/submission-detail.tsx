@@ -362,24 +362,26 @@ export default function SubmissionDetailPage() {
             </div>
 
             <Separator />
-            <ArrayInfo label="Producción principal" values={submission.produccionPrincipal} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
-              {[
-                "madera", "lena", "castana", "vid", "fruticola", "horticola", "pasto_ganadera", "apicolas"
-              ].map((opcion) => {
-                const isSelected = submission.produccionPrincipal?.includes(opcion);
-                return (
-                  <div key={opcion} className="flex items-center gap-2 text-sm">
-                    {isSelected ? 
-                      <CheckCircle className="h-4 w-4 text-green-600" /> : 
-                      <div className="h-4 w-4 rounded border border-muted" />
-                    }
-                    <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
-                      {labelMappings[opcion]}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Producción principal</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+                {[
+                  "madera", "lena", "castana", "vid", "fruticola", "horticola", "pasto_ganadera", "apicolas"
+                ].map((opcion) => {
+                  const isSelected = submission.produccionPrincipal?.includes(opcion);
+                  return (
+                    <div key={opcion} className="flex items-center gap-2 text-sm">
+                      {isSelected ? 
+                        <CheckCircle className="h-4 w-4 text-green-600" /> : 
+                        <div className="h-4 w-4 rounded border border-muted" />
+                      }
+                      <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
+                        {labelMappings[opcion]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             {submission.otrosObjetivosTexto && (
               <InfoItem label="Otros objetivos" value={submission.otrosObjetivosTexto} />
