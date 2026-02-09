@@ -1066,10 +1066,13 @@ export async function registerRoutes(
     }
   });
 
+  // En server/routes.ts
+
   app.patch("/api/ocr/jobs/:id/status", requireAuth, async (req, res) => {
     try {
       const id = req.params.id as string;
       const result = ocrStatusSchema.safeParse(req.body);
+
       if (!result.success) {
         return res
           .status(400)
@@ -1077,9 +1080,20 @@ export async function registerRoutes(
       }
 
       const { status, submissionId } = result.data;
+
+      // 1. Actualizamos el estado como siempre
       const job = await storage.updateOcrJobStatus(id, status, submissionId);
+
       if (!job) {
         return res.status(404).json({ error: "Trabajo OCR no encontrado" });
+      }
+
+      // 2. NUEVA LÓGICA: Si el estado es 'aprobado', borramos los campos temporales
+      if (status === "aprobado") {
+        console.log(
+          `[Limpieza] Borrando campos OCR temporales para el trabajo ${id}`,
+        );
+        await storage.deleteOcrExtractedFields(id);
       }
 
       return res.json(job);
