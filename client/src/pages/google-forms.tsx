@@ -67,6 +67,14 @@ export default function GoogleFormsPage() {
     queryFn: async () => {
       // Obtenemos directamente de la tabla submissions donde source = google_forms
       const res = await fetch("/api/submissions?source=google_forms&limit=50");
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Si no estamos autorizados, podríamos redirigir o mostrar error
+          // Por ahora dejamos que react-query maneje el error o lanzamos uno
+          throw new Error("No autorizado");
+        }
+        throw new Error("Error al cargar respuestas");
+      }
       const data = await res.json();
       return data.submissions;
     },
