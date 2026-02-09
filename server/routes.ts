@@ -1111,21 +1111,47 @@ export async function registerRoutes(
   });
 
   app.use("/uploads", requireAuth, (req, res, next) => {
-    const requestedPath = req.path.replace(/^\/+/, "");
-    const sanitizedPath = path.basename(requestedPath);
-    const filePath = path.join(uploadsDir, sanitizedPath);
+    // Evitamos mostrar logs si es solo el navegador comprobando algo
+    if (req.method !== "GET") return next();
 
+    const requestedPath = req.path.replace(/^\/+/, "");
+    // Decodificamos por si el nombre tiene espacios (%20) u otros caracteres
+    const decodedPath = decodeURIComponent(requestedPath);
+    const sanitizedPath = path.basename(decodedPath);
+    const filePath = path.join(uploadsDir, sanitizedPath);
     const resolvedPath = path.resolve(filePath);
+
+    // LOG DE DEPURACIÓN (Míralo en la consola de tu servidor/deploy)
+    console.log(`[Uploads] Petición: ${req.path}`);
+    console.log(`[Uploads] Ruta del sistema: ${uploadsDir}`);
+    console.log(`[Uploads] Buscando archivo en: ${resolvedPath}`);
+
     if (!resolvedPath.startsWith(path.resolve(uploadsDir))) {
+      console.log(`[Uploads] Error: Intento de Path Traversal`);
       return res.status(403).json({ error: "Acceso denegado" });
     }
 
     if (fs.existsSync(resolvedPath)) {
       return res.sendFile(resolvedPath);
     }
+
+    console.log(`[Uploads] Error: El archivo NO existe físicamente en disco`);
+    // Listamos qué hay en la carpeta para ver si se guardó con otro nombre
+    try {
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        console.log(`[Uploads] Archivos disponibles en la carpeta:`, files);
+      } else {
+        console.log(
+          `[Uploads] ALERTA: La carpeta 'uploads' completa NO existe`,
+        );
+      }
+    } catch (e) {
+      console.error("[Uploads] Error al listar directorio:", e);
+    }
+
     return res.status(404).json({ error: "Archivo no encontrado" });
   });
-
   app.get("/api/google-forms/config", requireAuth, async (req, res) => {
     try {
       const config = await storage.getGoogleFormsConfig();

@@ -74,6 +74,7 @@ export interface IStorage {
     localidad: string,
     referencias: string,
   ): Promise<Submission[]>;
+  deleteOcrExtractedFields(ocrJobId: string): Promise<void>;
 
   getGoogleFormsConfig(): Promise<GoogleFormsConfig | null>;
   saveGoogleFormsConfig(
@@ -528,6 +529,11 @@ export class DatabaseStorage implements IStorage {
       pendingResponses: 0, // Ya no hay cola intermedia
       lastSyncAt: config?.lastSyncAt?.toISOString() || null,
     };
+  }
+  async deleteOcrExtractedFields(ocrJobId: string): Promise<void> {
+    await db
+      .delete(ocrExtractedFields)
+      .where(eq(ocrExtractedFields.ocrJobId, ocrJobId));
   }
 }
 export const storage = new DatabaseStorage();
