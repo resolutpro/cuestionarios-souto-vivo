@@ -9,6 +9,8 @@ import MemoryStore from "memorystore";
 const app = express();
 const httpServer = createServer(app);
 
+app.set("trust proxy", 1);
+
 const MemoryStoreSession = MemoryStore(session);
 
 app.use(
@@ -24,7 +26,7 @@ app.use(
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
     },
-  })
+  }),
 );
 
 declare module "http" {
@@ -82,7 +84,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
-  
+
   try {
     await seedDatabase();
   } catch (error) {
