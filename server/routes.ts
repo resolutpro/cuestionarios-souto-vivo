@@ -507,13 +507,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadsDir,
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
-    },
-  }),
+  storage: multer.memoryStorage(), // <--- CAMBIO CLAVE
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       "application/pdf",
@@ -930,9 +924,22 @@ export async function registerRoutes(
 
         const jobs = [];
         for (const file of files) {
+          // 1. Generamos nombre único manualmente (ya que memoryStorage no lo hace)
+          const uniqueSuffix =
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
+          const filename = uniqueSuffix + path.extname(file.originalname);
+
+          // 2. Guardamos el archivo FÍSICO en la Base de Datos
+          await storage.createFile({
+            fileName: filename,
+            data: file.buffer.toString("base64"), // Convertimos a Base64
+            mimeType: file.mimetype,
+          });
+
+          // 3. Creamos el Job (Mantenemos la URL igual para que nada se rompa)
           const job = await storage.createOcrJob({
             fileName: file.originalname,
-            fileUrl: `/uploads/${file.filename}`,
+            fileUrl: `/uploads/${filename}`, // La URL sigue siendo la misma
             fileType: file.mimetype,
             status: "pendiente_ocr",
             createdBy: req.session?.user?.username,
@@ -940,25 +947,20 @@ export async function registerRoutes(
 
           jobs.push(job);
 
-          // Procesar con Google Cloud Document AI
+          // 4. Procesar OCR (Usamos el buffer directamente, sin leer de disco)
           (async () => {
             try {
-              const fileContent = fs.readFileSync(
-                path.join(process.cwd(), job.fileUrl),
-              );
-              // 1. Obtenemos la lista ordenada
+              // file.buffer ya tiene el contenido
               const extractedFieldsList = await analyzeForm(
-                fileContent,
+                file.buffer,
                 file.mimetype,
               );
 
-              // 2. Mapeamos usando la nueva lógica
               const submissionData = mapOcrToSubmission(extractedFieldsList);
               submissionData.source = "ocr";
               submissionData.status = "pendiente";
               submissionData.createdBy = req.session?.user?.username;
 
-              // Guardar los campos extraídos para revisión manual y depuración
               for (const item of extractedFieldsList) {
                 await storage.createOcrExtractedField({
                   ocrJobId: job.id,
@@ -971,7 +973,6 @@ export async function registerRoutes(
                 });
               }
 
-              // Crear la submission con los datos procesados
               const submission = await storage.createSubmission(submissionData);
               await storage.updateOcrJobStatus(
                 job.id,
@@ -1124,46 +1125,33 @@ export async function registerRoutes(
     }
   });
 
-  app.use("/uploads", requireAuth, (req, res, next) => {
-    // Evitamos mostrar logs si es solo el navegador comprobando algo
-    if (req.method !== "GET") return next();
-
+  app.use("/uploads", requireAuth, async (req, res, next) => {
+    // Obtenemos el nombre del archivo de la URL
     const requestedPath = req.path.replace(/^\/+/, "");
-    // Decodificamos por si el nombre tiene espacios (%20) u otros caracteres
-    const decodedPath = decodeURIComponent(requestedPath);
-    const sanitizedPath = path.basename(decodedPath);
-    const filePath = path.join(uploadsDir, sanitizedPath);
-    const resolvedPath = path.resolve(filePath);
+    const filename = path.basename(decodeURIComponent(requestedPath));
 
-    // LOG DE DEPURACIÓN (Míralo en la consola de tu servidor/deploy)
-    console.log(`[Uploads] Petición: ${req.path}`);
-    console.log(`[Uploads] Ruta del sistema: ${uploadsDir}`);
-    console.log(`[Uploads] Buscando archivo en: ${resolvedPath}`);
-
-    if (!resolvedPath.startsWith(path.resolve(uploadsDir))) {
-      console.log(`[Uploads] Error: Intento de Path Traversal`);
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
-
-    if (fs.existsSync(resolvedPath)) {
-      return res.sendFile(resolvedPath);
-    }
-
-    console.log(`[Uploads] Error: El archivo NO existe físicamente en disco`);
-    // Listamos qué hay en la carpeta para ver si se guardó con otro nombre
+    // 1. INTENTO PRIMARIO: Buscar en Base de Datos (Nuevos archivos)
     try {
-      if (fs.existsSync(uploadsDir)) {
-        const files = fs.readdirSync(uploadsDir);
-        console.log(`[Uploads] Archivos disponibles en la carpeta:`, files);
-      } else {
-        console.log(
-          `[Uploads] ALERTA: La carpeta 'uploads' completa NO existe`,
-        );
+      const dbFile = await storage.getFileByName(filename);
+      if (dbFile) {
+        const fileBuffer = Buffer.from(dbFile.data, "base64");
+        res.setHeader("Content-Type", dbFile.mimeType);
+        res.setHeader("Content-Length", fileBuffer.length);
+        return res.send(fileBuffer);
       }
     } catch (e) {
-      console.error("[Uploads] Error al listar directorio:", e);
+      console.error("Error buscando archivo en BD:", e);
     }
 
+    // 2. FALLBACK: Intentar buscar en disco (Archivos antiguos o de desarrollo)
+    // Esto mantiene la compatibilidad mientras migras
+    const filePath = path.join(uploadsDir, filename);
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+
+    // 3. Si no está en ninguno de los dos
+    console.log(`[Uploads] 404 - Archivo no encontrado: ${filename}`);
     return res.status(404).json({ error: "Archivo no encontrado" });
   });
   app.get("/api/google-forms/config", requireAuth, async (req, res) => {

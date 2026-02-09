@@ -7,6 +7,9 @@ import {
   ocrExtractedFields,
   googleFormsConfig,
   googleFormsResponses,
+  files,
+  type InsertFile,
+  type FileModel,
   type User,
   type InsertUser,
   type Submission,
@@ -101,6 +104,8 @@ export interface IStorage {
     pendingResponses: number;
     lastSyncAt: string | null;
   }>;
+  createFile(file: InsertFile): Promise<FileModel>;
+  getFileByName(fileName: string): Promise<FileModel | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -534,6 +539,19 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(ocrExtractedFields)
       .where(eq(ocrExtractedFields.ocrJobId, ocrJobId));
+  }
+  async createFile(file: InsertFile): Promise<FileModel> {
+    const [result] = await db.insert(files).values(file).returning();
+    return result;
+  }
+
+  async getFileByName(fileName: string): Promise<FileModel | undefined> {
+    // Buscamos por el nombre de archivo que usamos en la URL
+    const [result] = await db
+      .select()
+      .from(files)
+      .where(eq(files.fileName, fileName));
+    return result;
   }
 }
 export const storage = new DatabaseStorage();
