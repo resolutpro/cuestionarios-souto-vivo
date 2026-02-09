@@ -1175,13 +1175,23 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/google-forms/stats", requireAuth, async (req, res) => {
+  app.get("/api/google-forms/stats", async (_req, res) => {
     try {
-      const stats = await storage.getGoogleFormsStats();
-      return res.json(stats);
+      // Obtenemos las estadísticas generales que ya incluyen el conteo por source
+      const stats = await storage.getStats();
+
+      // El número de documentos de Google Forms es el conteo donde source = 'google_forms'
+      const googleFormsCount = stats.bySource["google_forms"] || 0;
+
+      // Aquí puedes mantener otros campos si los necesitas para la UI
+      res.json({
+        totalResponses: googleFormsCount, // Este es el número que quieres mostrar
+        processedResponses: googleFormsCount, // Si consideras que todos los de la tabla ya están procesados
+        pendingResponses: 0,
+        lastSyncAt: null, // Puedes obtener esto de la configuración si lo deseas
+      });
     } catch (error) {
-      console.error("Error fetching Google Forms stats:", error);
-      return res.status(500).json({ error: "Error interno del servidor" });
+      res.status(500).json({ message: "Error al obtener estadísticas" });
     }
   });
 
