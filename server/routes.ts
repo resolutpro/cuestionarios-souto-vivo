@@ -1048,28 +1048,6 @@ export async function registerRoutes(
     },
   );
 
-  app.patch("/api/submissions/:id", requireAuth, async (req, res) => {
-    try {
-      const id = req.params.id as string;
-      const result = insertSubmissionSchema.partial().safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .json({ error: "Datos inválidos", details: result.error.errors });
-      }
-
-      const submission = await storage.updateSubmission(id, result.data);
-      if (!submission) {
-        return res.status(404).json({ error: "Cuestionario no encontrado" });
-      }
-
-      return res.json(submission);
-    } catch (error) {
-      console.error("Error updating submission:", error);
-      return res.status(500).json({ error: "Error interno del servidor" });
-    }
-  });
-
   // En server/routes.ts
 
   app.patch("/api/ocr/jobs/:id/status", requireAuth, async (req, res) => {
@@ -1441,23 +1419,36 @@ export async function registerRoutes(
           .json({ error: "Datos inválidos", details: result.error.errors });
       }
 
-      // --- NUEVA VALIDACIÓN DE CÓDIGO ÚNICO ---
+      // --- VALIDACIÓN DE CÓDIGO ÚNICO ---
       if (result.data.codigo) {
-        // Normalizamos a mayúsculas por si acaso
         const codigoNormalizado = result.data.codigo.toUpperCase();
+
+        // 1. Comprobar si existe exactamente ese código
         const existing = await storage.getSubmissionByCode(codigoNormalizado);
 
-        // Si existe un cuestionario con ese código y NO es el que estamos editando
         if (existing && existing.id !== id) {
+          // El código está cogido. Vamos a buscar cuál es el último de esa serie para ayudar.
+          let sugerencia = "";
+
+          // Asumimos formato SV_JPXX_XXX. Extraemos lo que hay antes del último guion bajo.
+          const lastUnderscore = codigoNormalizado.lastIndexOf("_");
+
+          if (lastUnderscore > 0) {
+            const prefix = codigoNormalizado.substring(0, lastUnderscore); // Ej: SV_JP01
+            const lastUsed = await storage.getLastCodeByPrefix(prefix);
+            if (lastUsed) {
+              sugerencia = ` El último código registrado en esta serie es ${lastUsed}.`;
+            }
+          }
+
           return res.status(409).json({
-            error: `El código ${codigoNormalizado} ya está en uso por ${existing.nombreApellidos || "otro usuario"}.`,
+            error: `El código ${codigoNormalizado} ya está en uso por ${existing.nombreApellidos || "otro usuario"}.${sugerencia}`,
           });
         }
 
-        // Aseguramos que se guarde en mayúsculas
         result.data.codigo = codigoNormalizado;
       }
-      // ----------------------------------------
+      // ----------------------------------
 
       const submission = await storage.updateSubmission(id, result.data);
       if (!submission) {

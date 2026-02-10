@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, or, ilike } from "drizzle-orm";
+import { eq, desc, sql, and, or, ilike, like } from "drizzle-orm";
 import { db } from "./db";
 import {
   users,
@@ -24,6 +24,7 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  getLastCodeByPrefix(prefix: string): Promise<string | undefined>;
   getSubmissionByCode(code: string): Promise<Submission | undefined>;
   getSubmissionByExternalId(
     externalId: string,
@@ -112,6 +113,19 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async getLastCodeByPrefix(prefix: string): Promise<string | undefined> {
+    // Buscamos códigos que empiecen por el prefijo (ej: "SV_JP01%")
+    // Ordenamos descendente para obtener el más alto (ej: ...005, ...004)
+    const [result] = await db
+      .select({ codigo: submissions.codigo })
+      .from(submissions)
+      .where(like(submissions.codigo, `${prefix}%`))
+      .orderBy(desc(submissions.codigo))
+      .limit(1);
+
+    return result?.codigo;
+  }
+
   async getSubmissionByCode(code: string): Promise<Submission | undefined> {
     const [submission] = await db
       .select()
@@ -260,7 +274,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(ilike(submissions.localidad, `%${filters.localidad}%`));
     }
     if (filters.search) {
-      const searchLower = `%${filter.search.toLowerCase()}%`;
+      const searchLower = `%${filters.search.toLowerCase()}%`;
       conditions.push(
         or(
           ilike(submissions.nombreApellidos, `%${filters.search}%`),
