@@ -1430,5 +1430,46 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/submissions/:id", requireAuth, async (req, res) => {
+    try {
+      const id = req.params.id as string;
+      const result = insertSubmissionSchema.partial().safeParse(req.body);
+
+      if (!result.success) {
+        return res
+          .status(400)
+          .json({ error: "Datos inválidos", details: result.error.errors });
+      }
+
+      // --- NUEVA VALIDACIÓN DE CÓDIGO ÚNICO ---
+      if (result.data.codigo) {
+        // Normalizamos a mayúsculas por si acaso
+        const codigoNormalizado = result.data.codigo.toUpperCase();
+        const existing = await storage.getSubmissionByCode(codigoNormalizado);
+
+        // Si existe un cuestionario con ese código y NO es el que estamos editando
+        if (existing && existing.id !== id) {
+          return res.status(409).json({
+            error: `El código ${codigoNormalizado} ya está en uso por ${existing.nombreApellidos || "otro usuario"}.`,
+          });
+        }
+
+        // Aseguramos que se guarde en mayúsculas
+        result.data.codigo = codigoNormalizado;
+      }
+      // ----------------------------------------
+
+      const submission = await storage.updateSubmission(id, result.data);
+      if (!submission) {
+        return res.status(404).json({ error: "Cuestionario no encontrado" });
+      }
+
+      return res.json(submission);
+    } catch (error) {
+      console.error("Error updating submission:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
   return httpServer;
 }

@@ -129,6 +129,7 @@ export default function SubmissionsPage() {
   const updateCodeMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
+      // apiRequest lanza un error automáticamente si el status no es 2xx
       await apiRequest("PATCH", `/api/submissions/${editingId}`, {
         codigo: editCode,
       });
@@ -138,8 +139,13 @@ export default function SubmissionsPage() {
       setEditingId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/submissions"] });
     },
-    onError: () => {
-      toast({ title: "Error al actualizar el código", variant: "destructive" });
+    onError: (error: Error) => {
+      // Aquí mostramos el mensaje que viene del servidor (ej: "El código ya está en uso...")
+      toast({
+        title: "No se pudo actualizar",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 

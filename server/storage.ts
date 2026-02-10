@@ -24,6 +24,7 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  getSubmissionByCode(code: string): Promise<Submission | undefined>;
   getSubmissionByExternalId(
     externalId: string,
   ): Promise<Submission | undefined>;
@@ -111,6 +112,13 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async getSubmissionByCode(code: string): Promise<Submission | undefined> {
+    const [submission] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.codigo, code));
+    return submission;
+  }
   async deleteSubmission(id: string): Promise<void> {
     await db.delete(submissions).where(eq(submissions.id, id));
   }
@@ -252,12 +260,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(ilike(submissions.localidad, `%${filters.localidad}%`));
     }
     if (filters.search) {
+      const searchLower = `%${filter.search.toLowerCase()}%`;
       conditions.push(
         or(
           ilike(submissions.nombreApellidos, `%${filters.search}%`),
           ilike(submissions.email, `%${filters.search}%`),
           ilike(submissions.localidad, `%${filters.search}%`),
           ilike(submissions.referenciasCatastrales, `%${filters.search}%`),
+          ilike(submissions.codigo, `%${filters.search}%`),
         ),
       );
     }
