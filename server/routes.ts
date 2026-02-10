@@ -924,22 +924,24 @@ export async function registerRoutes(
 
         const jobs = [];
         for (const file of files) {
-          // 1. Generamos nombre único manualmente (ya que memoryStorage no lo hace)
           const uniqueSuffix =
             Date.now() + "-" + Math.round(Math.random() * 1e9);
           const filename = uniqueSuffix + path.extname(file.originalname);
 
-          // 2. Guardamos el archivo FÍSICO en la Base de Datos
+          // LÓGICA DE EXTRACCIÓN DE CÓDIGO (NUEVO)
+          // Formato esperado: SV_JPXX_XXX (ej: SV_JP01_001)
+          const codeMatch = file.originalname.match(/(SV_JP\d{2}_\d{3})/i);
+          const extractedCode = codeMatch ? codeMatch[1].toUpperCase() : null;
+
           await storage.createFile({
             fileName: filename,
-            data: file.buffer.toString("base64"), // Convertimos a Base64
+            data: file.buffer.toString("base64"),
             mimeType: file.mimetype,
           });
 
-          // 3. Creamos el Job (Mantenemos la URL igual para que nada se rompa)
           const job = await storage.createOcrJob({
             fileName: file.originalname,
-            fileUrl: `/uploads/${filename}`, // La URL sigue siendo la misma
+            fileUrl: `/uploads/${filename}`,
             fileType: file.mimetype,
             status: "pendiente_ocr",
             createdBy: req.session?.user?.username,
@@ -947,20 +949,21 @@ export async function registerRoutes(
 
           jobs.push(job);
 
-          // 4. Procesar OCR (Usamos el buffer directamente, sin leer de disco)
           (async () => {
             try {
-              // file.buffer ya tiene el contenido
               const extractedFieldsList = await analyzeForm(
                 file.buffer,
                 file.mimetype,
               );
-
               const submissionData = mapOcrToSubmission(extractedFieldsList);
               submissionData.source = "ocr";
               submissionData.status = "pendiente";
               submissionData.createdBy = req.session?.user?.username;
 
+              // Asignar el código extraído
+              submissionData.codigo = extractedCode;
+
+              // Guardar campos extraídos...
               for (const item of extractedFieldsList) {
                 await storage.createOcrExtractedField({
                   ocrJobId: job.id,
@@ -980,7 +983,7 @@ export async function registerRoutes(
                 submission.id,
               );
             } catch (err) {
-              console.error(`Error en procesamiento OCR para ${job.id}:`, err);
+              console.error(`Error OCR ${job.id}:`, err);
               await storage.updateOcrJobStatus(job.id, "pendiente_ocr");
             }
           })();
@@ -991,8 +994,8 @@ export async function registerRoutes(
           message: `${jobs.length} archivo(s) subido(s) correctamente`,
         });
       } catch (error) {
-        console.error("Error uploading files:", error);
-        return res.status(500).json({ error: "Error interno del servidor" });
+        console.error("Error uploading:", error);
+        return res.status(500).json({ error: "Error interno" });
       }
     },
   );
@@ -1403,5 +1406,29 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Error al procesar el webhook" });
     }
   });
+
+  app.delete("/api/submissions/:id", requireAuth, async (req, res) => {
+    try {
+      const id = req.params.id as string;
+      const submission = await storage.getSubmission(id);
+
+      if (!submission) {
+        return res.status(404).json({ error: "Cuestionario no encontrado" });
+      }
+
+      if (submission.source !== "ocr") {
+        return res.status(403).json({
+          error: "Solo se pueden eliminar cuestionarios de origen OCR",
+        });
+      }
+
+      await storage.deleteSubmission(id);
+      return res.json({ success: true, message: "Cuestionario eliminado" });
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
   return httpServer;
 }

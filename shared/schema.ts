@@ -104,6 +104,7 @@ export const submissions = pgTable("submissions", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
+  codigo: text("codigo"),
   source: sourceEnum("source").notNull().default("web"),
   status: submissionStatusEnum("status").notNull().default("enviado"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -271,6 +272,7 @@ export const loginSchema = z.object({
 export type LoginData = z.infer<typeof loginSchema>;
 
 export const submissionFilterSchema = z.object({
+  codigo: z.string().optional(),
   localidad: z.string().optional(),
   genero: z.enum(["mujer", "hombre", "otros"]).optional(),
   edad: z.enum(["menos_35", "entre_35_50", "mas_50"]).optional(),

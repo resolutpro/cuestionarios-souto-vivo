@@ -1,11 +1,12 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { 
-  ArrowLeft, 
-  User, 
-  MapPin, 
-  Phone, 
-  Mail, 
+import {
+  ArrowLeft,
+  User,
+  MapPin,
+  Phone,
+  Mail,
   TreePine,
   Target,
   GraduationCap,
@@ -14,23 +15,55 @@ import {
   Calendar,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Pencil,
+  Save,
+  X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Submission } from "@shared/schema";
 
 const statusConfig = {
-  borrador: { color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400", icon: Clock },
-  enviado: { color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", icon: Clock },
-  aprobado: { color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle },
-  rechazado: { color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", icon: XCircle },
-  pendiente: { color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400", icon: Clock },
+  borrador: {
+    color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+    icon: Clock,
+  },
+  enviado: {
+    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    icon: Clock,
+  },
+  aprobado: {
+    color:
+      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    icon: CheckCircle,
+  },
+  rechazado: {
+    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    icon: XCircle,
+  },
+  pendiente: {
+    color:
+      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    icon: Clock,
+  },
 };
 
 const labelMappings: Record<string, string> = {
@@ -81,8 +114,10 @@ const labelMappings: Record<string, string> = {
   no: "No, no tengo interés en ceder la gestión",
   cooperativa: "Creando una cooperativa o agrupación de productores local",
   caminos: "Recuperando caminos y accesos que beneficien a toda la vecindad",
-  hacenderas: "Organizando \"hacenderas\" o jornadas de trabajo comunitario voluntario",
-  contacto: "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra",
+  hacenderas:
+    'Organizando "hacenderas" o jornadas de trabajo comunitario voluntario',
+  contacto:
+    "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra",
   otros_gobernanza: "Otros",
   productividad: "Mejora de la productividad",
   matorral: "Control del matorral",
@@ -112,38 +147,163 @@ const labelMappings: Record<string, string> = {
   comercializacion: "Comercialización de productos",
   ayudas: "Tramitación de ayudas",
   legislacion: "Legislación y fiscalidad",
+  agricola: "Agrícola",
+  forestal: "Forestal",
+  mixta: "Mixta",
 };
 
-function InfoItem({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: typeof User }) {
-  if (!value) return null;
+const OPTIONS = {
+  genero: ["mujer", "hombre", "otros"],
+  edad: ["menos_35", "entre_35_50", "mas_50"],
+  relacionFinca: ["propietario", "arrendatario", "gestor", "otra"],
+  titularidadCompartida: ["si", "no"],
+  agricultorTituloPrincipal: ["si", "no_complementario"],
+  superficieCategoria: ["menos_1ha", "entre_1_5ha", "mas_5ha", "otra", "no_se"],
+  usoSuelo: ["cultivo_activo", "pasto", "monte", "sin_uso", "otro"],
+  acceso: ["bueno", "regular", "malo"],
+  agua: ["si", "no", "no_se"],
+  nivel: ["baja", "media", "alta"],
+  gradoInteres: ["alto", "medio", "bajo"],
+  nivelActuacion: ["solo_diagnostico", "implantacion"],
+  relevoGeneracional: ["si_familiares", "no_riesgo_abandono", "buscando"],
+  colaboracion: [
+    "si_agrupacion",
+    "si_puntuales",
+    "no_individual",
+    "no_se_asesoria",
+  ],
+  minifundio: ["si_mucho", "si_asumible", "no_adecuado"],
+  cesionTierras: ["si_contrato", "si_municipio", "no"],
+  tipoFinca: ["agricola", "forestal", "mixta"],
+};
+
+// --- COMPONENTES AUXILIARES DEFINIDOS FUERA PARA EVITAR RE-RENDERIZADO ---
+
+const EditableInfoItem = ({
+  label,
+  value,
+  onChange,
+  isEditing,
+  icon: Icon,
+  type = "text",
+  options = [],
+}: {
+  label: string;
+  value: any;
+  onChange: (val: any) => void;
+  isEditing: boolean;
+  icon?: any;
+  type?: "text" | "select" | "textarea";
+  options?: string[];
+}) => {
+  if (isEditing) {
+    return (
+      <div className="space-y-2 mb-4">
+        <Label>{label}</Label>
+        {type === "textarea" ? (
+          <Textarea
+            value={(value as string) || ""}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        ) : type === "select" ? (
+          <Select value={(value as string) || ""} onValueChange={onChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar..." />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {labelMappings[opt] || opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            value={(value as string) || ""}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (!value && !isEditing) return null;
+
   return (
-    <div className="flex items-start gap-3">
-      {Icon && <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />}
+    <div className="flex items-start gap-3 mb-2">
+      {Icon && (
+        <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      )}
       <div>
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="font-medium">{labelMappings[value] || value}</p>
+        <p className="font-medium">{labelMappings[value as string] || value}</p>
       </div>
     </div>
   );
-}
+};
 
-function ArrayInfo({ label, values }: { label: string; values: string[] | null | undefined }) {
-  if (!values || values.length === 0) return null;
+const EditableArray = ({
+  label,
+  currentValues = [],
+  onChange,
+  isEditing,
+  options,
+}: {
+  label: string;
+  currentValues: string[];
+  onChange: (val: string, checked: boolean) => void;
+  isEditing: boolean;
+  options: string[];
+}) => {
+  if (isEditing) {
+    return (
+      <div className="space-y-3 mb-4">
+        <Label>{label}</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 border rounded-md">
+          {options.map((opt) => (
+            <div key={opt} className="flex items-center space-x-2">
+              <Checkbox
+                id={`${label}-${opt}`}
+                checked={currentValues.includes(opt)}
+                onCheckedChange={(checked) => onChange(opt, checked as boolean)}
+              />
+              <label
+                htmlFor={`${label}-${opt}`}
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {labelMappings[opt] || opt}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentValues || currentValues.length === 0) return null;
+
   return (
-    <div>
+    <div className="mb-4">
       <p className="text-sm text-muted-foreground mb-2">{label}</p>
       <div className="flex flex-wrap gap-2">
-        {values.map((v, i) => (
-          <Badge key={i} variant="secondary">{labelMappings[v] || v}</Badge>
+        {currentValues.map((v, i) => (
+          <Badge key={i} variant="secondary">
+            {labelMappings[v] || v}
+          </Badge>
         ))}
       </div>
     </div>
   );
-}
+};
+
+// --- FIN COMPONENTES AUXILIARES ---
 
 export default function SubmissionDetailPage() {
   const [match, params] = useRoute("/submissions/:id");
   const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Submission>>({});
 
   const { data: submission, isLoading } = useQuery<Submission>({
     queryKey: ["/api/submissions", params?.id],
@@ -155,27 +315,107 @@ export default function SubmissionDetailPage() {
     enabled: !!params?.id,
   });
 
+  useEffect(() => {
+    if (submission) {
+      setEditForm(submission);
+    }
+  }, [submission, isEditing]);
+
   const updateStatusMutation = useMutation({
     mutationFn: async (status: string) => {
-      const response = await apiRequest("PATCH", `/api/submissions/${params?.id}/status`, { status });
+      const response = await apiRequest(
+        "PATCH",
+        `/api/submissions/${params?.id}/status`,
+        { status },
+      );
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/submissions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/submissions", params?.id] });
-      toast({
-        title: "Estado actualizado",
-        description: "El estado del cuestionario ha sido actualizado correctamente.",
+      queryClient.invalidateQueries({
+        queryKey: ["/api/submissions", params?.id],
       });
+      toast({ title: "Estado actualizado" });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado del cuestionario.",
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
   });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: Partial<Submission>) => {
+      const response = await apiRequest(
+        "PATCH",
+        `/api/submissions/${params?.id}`,
+        data,
+      );
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions"] });
+      setIsEditing(false);
+      toast({ title: "Cambios guardados correctamente" });
+    },
+    onError: () =>
+      toast({ title: "Error al guardar cambios", variant: "destructive" }),
+  });
+
+  const handleEditChange = (field: keyof Submission, value: any) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleArrayChange = (
+    field: keyof Submission,
+    value: string,
+    checked: boolean,
+  ) => {
+    setEditForm((prev) => {
+      const currentArray = (prev[field] as string[]) || [];
+      if (checked) {
+        return { ...prev, [field]: [...currentArray, value] };
+      } else {
+        return {
+          ...prev,
+          [field]: currentArray.filter((item) => item !== value),
+        };
+      }
+    });
+  };
+
+  // Funciones helper para renderizar los componentes externos pasando las props correctas
+  const renderItem = (
+    label: string,
+    field: keyof Submission,
+    icon?: any,
+    type: "text" | "select" | "textarea" = "text",
+    options: string[] = [],
+  ) => (
+    <EditableInfoItem
+      key={field}
+      label={label}
+      value={isEditing ? editForm[field] : submission?.[field]}
+      onChange={(val) => handleEditChange(field, val)}
+      isEditing={isEditing}
+      icon={icon} // CORREGIDO: Se pasa la variable 'icon' (minúscula) que viene como argumento
+      type={type}
+      options={options}
+    />
+  );
+
+  const renderArray = (
+    label: string,
+    field: keyof Submission,
+    options: string[],
+  ) => (
+    <EditableArray
+      key={field}
+      label={label}
+      currentValues={
+        ((isEditing ? editForm[field] : submission?.[field]) as string[]) || []
+      }
+      onChange={(val, checked) => handleArrayChange(field, val, checked)}
+      isEditing={isEditing}
+      options={options}
+    />
+  );
 
   if (!match) return null;
 
@@ -210,10 +450,11 @@ export default function SubmissionDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header y Acciones */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/submissions">
-            <Button variant="ghost" size="icon" data-testid="button-back">
+            <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
@@ -222,169 +463,306 @@ export default function SubmissionDetailPage() {
               {submission.nombreApellidos || "Sin nombre"}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[submission.status]?.color}`}>
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig[submission.status]?.color}`}
+              >
                 <StatusIcon className="h-3 w-3" />
                 {submission.status}
               </span>
               <Badge variant="outline">{submission.source.toUpperCase()}</Badge>
+              {submission.codigo && (
+                <Badge variant="secondary" className="font-mono">
+                  {submission.codigo}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {submission.status !== "aprobado" && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => updateStatusMutation.mutate("aprobado")}
-              disabled={updateStatusMutation.isPending}
-              data-testid="button-approve"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Aprobar
+          {/* Botones de Edición (Solo OCR) */}
+          {submission.source === "ocr" && !isEditing && (
+            <Button onClick={() => setIsEditing(true)} variant="outline">
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar
             </Button>
           )}
-          {submission.status !== "rechazado" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => updateStatusMutation.mutate("rechazado")}
-              disabled={updateStatusMutation.isPending}
-              data-testid="button-reject"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Rechazar
-            </Button>
+
+          {isEditing ? (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsEditing(false)}
+                disabled={saveMutation.isPending}
+              >
+                <X className="h-4 w-4 mr-2" /> Cancelar
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate(editForm)}
+                disabled={saveMutation.isPending}
+              >
+                {saveMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                <Save className="h-4 w-4 mr-2" /> Guardar
+              </Button>
+            </div>
+          ) : (
+            <>
+              {submission.status !== "aprobado" && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate("aprobado")}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" /> Aprobar
+                </Button>
+              )}
+              {submission.status !== "rechazado" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate("rechazado")}
+                >
+                  <XCircle className="h-4 w-4 mr-2" /> Rechazar
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Datos Personales */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Datos Personales
+              <User className="h-5 w-5" /> Datos Personales
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem label="Nombre y apellidos" value={submission.nombreApellidos} icon={User} />
-            <InfoItem label="Teléfono" value={submission.telefono} icon={Phone} />
-            <InfoItem label="Email" value={submission.email} icon={Mail} />
-            <InfoItem label="Localidad" value={submission.localidad} icon={MapPin} />
+            {isEditing && renderItem("Código (SV_JPXX_XXX)", "codigo")}
+            {renderItem("Nombre y apellidos", "nombreApellidos", User)}
+            {renderItem("Teléfono", "telefono", Phone)}
+            {renderItem("Email", "email", Mail)}
+            {renderItem("Localidad", "localidad", MapPin)}
             <Separator />
             <div className="grid grid-cols-2 gap-4">
-              <InfoItem label="Género" value={submission.genero} />
-              <InfoItem label="Edad" value={submission.edad} />
+              {renderItem(
+                "Género",
+                "genero",
+                undefined,
+                "select",
+                OPTIONS.genero,
+              )}
+              {renderItem("Edad", "edad", undefined, "select", OPTIONS.edad)}
             </div>
-            <InfoItem label="Relación con la finca" value={submission.relacionFinca} />
-            {submission.relacionFincaOtra && (
-              <InfoItem label="Otra relación" value={submission.relacionFincaOtra} />
+            {renderItem(
+              "Relación con la finca",
+              "relacionFinca",
+              undefined,
+              "select",
+              OPTIONS.relacionFinca,
             )}
-            {submission.relacionFinca === "propietario" && (
-              <InfoItem label="Titularidad compartida" value={submission.titularidadCompartida} />
+            {renderItem("Otra relación", "relacionFincaOtra")}
+            {renderItem(
+              "Titularidad compartida",
+              "titularidadCompartida",
+              undefined,
+              "select",
+              OPTIONS.titularidadCompartida,
             )}
-            <InfoItem label="Agricultor/a a título principal" value={submission.agricultorTituloPrincipal} />
-            <InfoItem label="Asociación" value={submission.asociacionPertenece} />
+            {renderItem(
+              "Agricultor/a principal",
+              "agricultorTituloPrincipal",
+              undefined,
+              "select",
+              OPTIONS.agricultorTituloPrincipal,
+            )}
+            {renderItem("Asociación", "asociacionPertenece")}
           </CardContent>
         </Card>
 
+        {/* Información Finca */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TreePine className="h-5 w-5" />
-              Información de la Finca
+              <TreePine className="h-5 w-5" /> Información de la Finca
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem label="Referencias catastrales" value={submission.referenciasCatastrales} />
-            <InfoItem label="Superficie" value={submission.superficieCategoria} />
-            {submission.superficieOtra && (
-              <InfoItem label="Superficie (otra)" value={submission.superficieOtra} />
+            {renderItem(
+              "Referencias catastrales",
+              "referenciasCatastrales",
+              undefined,
+              "textarea",
             )}
-            <ArrayInfo label="Tipo de finca" values={submission.tipoFinca} />
-            <InfoItem label="Uso actual del suelo" value={submission.usoSuelo} />
-            {submission.usoSueloOtro && (
-              <InfoItem label="Otro uso" value={submission.usoSueloOtro} />
+            {renderItem(
+              "Superficie",
+              "superficieCategoria",
+              undefined,
+              "select",
+              OPTIONS.superficieCategoria,
             )}
-            <InfoItem label="En producción" value={submission.enProduccion ? "Sí" : submission.enProduccion === false ? "No" : null} />
+            {renderItem("Superficie (otra)", "superficieOtra")}
+
+            {renderArray("Tipo de finca", "tipoFinca", OPTIONS.tipoFinca)}
+
+            {renderItem(
+              "Uso actual del suelo",
+              "usoSuelo",
+              undefined,
+              "select",
+              OPTIONS.usoSuelo,
+            )}
+            {renderItem("Otro uso", "usoSueloOtro")}
+
+            {/* Boolean manual para "enProduccion" */}
+            {isEditing ? (
+              <div className="space-y-2 mb-4">
+                <Label>En producción</Label>
+                <Select
+                  value={
+                    editForm.enProduccion === true
+                      ? "true"
+                      : editForm.enProduccion === false
+                        ? "false"
+                        : ""
+                  }
+                  onValueChange={(val) =>
+                    handleEditChange("enProduccion", val === "true")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Sí</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              renderItem("En producción", "enProduccion")
+            )}
+
             <Separator />
-            <p className="text-sm font-medium text-muted-foreground">Condiciones de la finca</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Condiciones de la finca
+            </p>
             <div className="grid grid-cols-2 gap-4">
-              <InfoItem label="Acceso" value={submission.acceso} />
-              <InfoItem label="Agua" value={submission.agua} />
-              <InfoItem label="Pendiente" value={submission.pendiente} />
-              <InfoItem label="Pedregosidad" value={submission.pedregosidad} />
+              {renderItem(
+                "Acceso",
+                "acceso",
+                undefined,
+                "select",
+                OPTIONS.acceso,
+              )}
+              {renderItem("Agua", "agua", undefined, "select", OPTIONS.agua)}
+              {renderItem(
+                "Pendiente",
+                "pendiente",
+                undefined,
+                "select",
+                OPTIONS.nivel,
+              )}
+              {renderItem(
+                "Pedregosidad",
+                "pedregosidad",
+                undefined,
+                "select",
+                OPTIONS.nivel,
+              )}
             </div>
           </CardContent>
         </Card>
 
+        {/* Necesidades y Objetivos */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Necesidades y Objetivos
+              <Target className="h-5 w-5" /> Necesidades y Objetivos
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ArrayInfo label="Necesidades de la finca" values={submission.necesidades} />
-            {submission.necesidadesOtras && (
-              <InfoItem label="Otras necesidades" value={submission.necesidadesOtras} />
-            )}
-            <Separator />
-            <ArrayInfo label="Objetivos del modelo agroforestal" values={submission.objetivosModelo} />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">¿Qué modelo agroforestal le gustaría conseguir? (puede marcar varios)</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
-                {[
-                  { id: "castano", label: "Cultivo del castaño" },
-                  { id: "agroforestal", label: "Sistemas agroforestales" },
-                  { id: "agri_regenerativa", label: "Agricultura regenerativa" },
-                  { id: "gana_regenerativa", label: "Ganadería regenerativa" },
-                  { id: "carbono", label: "Plantaciones de fijación de carbono" },
-                  { id: "produccion", label: "Producción", check: (s: Submission) => !!(s.produccionPrincipal && s.produccionPrincipal.length > 0) },
-                  { id: "otros", label: "Otros", check: (s: Submission) => !!(s.otrosObjetivosTexto && s.otrosObjetivosTexto.trim().length > 0) }
-                ].map((opcion) => {
-                  const isSelected = !!submission.objetivosModelo?.includes(opcion.id) || (opcion.check ? opcion.check(submission) : false);
-                  return (
-                    <div key={opcion.id} className="flex items-center gap-2 text-sm">
-                      {isSelected ? 
-                        <CheckCircle className="h-4 w-4 text-blue-600" /> : 
-                        <div className="h-4 w-4 rounded border border-muted" />
-                      }
-                      <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
-                        {opcion.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            {renderArray("Necesidades", "necesidades", [
+              "productividad",
+              "matorral",
+              "incendios",
+              "suelo",
+              "diversificacion",
+              "abandonada",
+              "otras",
+            ])}
+            {renderItem("Otras necesidades", "necesidadesOtras")}
 
             <Separator />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Producción principal</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
-                {[
-                  "madera", "lena", "castana", "vid", "fruticola", "horticola", "pasto_ganadera", "apicolas"
-                ].map((opcion) => {
-                  const isSelected = !!submission.produccionPrincipal?.includes(opcion);
-                  return (
-                    <div key={opcion} className="flex items-center gap-2 text-sm">
-                      {isSelected ? 
-                        <CheckCircle className="h-4 w-4 text-green-600" /> : 
-                        <div className="h-4 w-4 rounded border border-muted" />
-                      }
-                      <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
-                        {labelMappings[opcion]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {submission.otrosObjetivosTexto && (
-              <InfoItem label="Otros objetivos" value={submission.otrosObjetivosTexto} />
+            {renderArray("Objetivos del modelo", "objetivosModelo", [
+              "castano",
+              "agroforestal",
+              "agri_regenerativa",
+              "gana_regenerativa",
+              "carbono",
+              "biodiversidad",
+              "reduccion_costes",
+              "impacto_social",
+              "otros",
+            ])}
+
+            <Separator />
+            {renderArray("Producción principal", "produccionPrincipal", [
+              "madera",
+              "lena",
+              "castana",
+              "vid",
+              "fruticola",
+              "horticola",
+              "pasto_ganadera",
+              "apicolas",
+            ])}
+
+            {renderItem(
+              "Otros objetivos (Texto)",
+              "otrosObjetivosTexto",
+              undefined,
+              "textarea",
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Interés y Social */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" /> Interés y Compromiso
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {renderItem(
+              "Grado de interés",
+              "gradoInteres",
+              undefined,
+              "select",
+              OPTIONS.gradoInteres,
+            )}
+            {renderItem(
+              "Nivel de actuación",
+              "nivelActuacion",
+              undefined,
+              "select",
+              OPTIONS.nivelActuacion,
+            )}
+            {renderArray("Disponibilidad", "disponibilidad", [
+              "reuniones",
+              "visitas",
+              "seguimiento",
+            ])}
+            {renderItem(
+              "Relevo generacional",
+              "relevoGeneracional",
+              undefined,
+              "select",
+              OPTIONS.relevoGeneracional,
             )}
           </CardContent>
         </Card>
@@ -392,136 +770,67 @@ export default function SubmissionDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Interés y Compromiso
+              <GraduationCap className="h-5 w-5" /> Necesidades Formativas
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoItem label="Grado de interés" value={submission.gradoInteres} />
-            <InfoItem label="Nivel de actuación" value={submission.nivelActuacion} />
-            <ArrayInfo label="Disponibilidad" values={submission.disponibilidad} />
-            <InfoItem label="Relevo generacional" value={submission.relevoGeneracional} />
+            {renderArray("Formación deseada", "formacion", [
+              "castano",
+              "agroforestal",
+              "agri_regenerativa",
+              "gana_regenerativa",
+              "carbono",
+              "comercializacion",
+              "ayudas",
+              "legislacion",
+            ])}
+            {renderItem("Otra formación", "formacionOtro")}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              Necesidades Formativas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ArrayInfo label="Formación deseada" values={submission.formacion} />
-            {submission.formacionOtro && (
-              <InfoItem label="Otra formación" value={submission.formacionOtro} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              7. Dimensión Social y Gestión Colectiva
+              <Users className="h-5 w-5" /> Dimensión Social
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Colaboración y Gestión Conjunta */}
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-primary">Modelos de colaboración y gestión comunitaria</p>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">¿Estaría dispuesto/a a participar en gestión conjunta?</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
-                  {["si_agrupacion", "si_puntuales", "no_individual", "no_se_asesoria"].map((opcion) => (
-                    <div key={opcion} className="flex items-center gap-2 text-sm">
-                      {submission.colaboracion === opcion ? 
-                        <CheckCircle className="h-4 w-4 text-green-600" /> : 
-                        <div className="h-4 w-4 rounded-full border border-muted" />
-                      }
-                      <span className={submission.colaboracion === opcion ? "font-medium" : "text-muted-foreground"}>
-                        {labelMappings[opcion]}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {renderItem(
+              "Colaboración",
+              "colaboracion",
+              undefined,
+              "select",
+              OPTIONS.colaboracion,
+            )}
+            {renderItem(
+              "Minifundio",
+              "minifundio",
+              undefined,
+              "select",
+              OPTIONS.minifundio,
+            )}
+            {renderItem(
+              "Cesión de Tierras",
+              "cesionTierras",
+              undefined,
+              "select",
+              OPTIONS.cesionTierras,
+            )}
 
             <Separator />
-
-            {/* Minifundio / Obstáculo */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">¿Considera que el tamaño/dispersión de sus fincas es un obstáculo?</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 ml-2">
-                {["si_mucho", "si_asumible", "no_adecuado"].map((opcion) => (
-                  <div key={opcion} className="flex items-center gap-2 text-sm">
-                    {submission.minifundio === opcion ? 
-                      <CheckCircle className="h-4 w-4 text-green-600" /> : 
-                      <div className="h-4 w-4 rounded-full border border-muted" />
-                    }
-                    <span className={submission.minifundio === opcion ? "font-medium" : "text-muted-foreground"}>
-                      {labelMappings[opcion]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Cesión de Tierras */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">¿Cedería la gestión mediante Banco de Tierras si no puede trabajarla?</p>
-              <div className="grid grid-cols-1 gap-2 ml-2">
-                {["si_contrato", "si_municipio", "no"].map((opcion) => (
-                  <div key={opcion} className="flex items-center gap-2 text-sm">
-                    {submission.cesionTierras === opcion ? 
-                      <CheckCircle className="h-4 w-4 text-green-600" /> : 
-                      <div className="h-4 w-4 rounded-full border border-muted" />
-                    }
-                    <span className={submission.cesionTierras === opcion ? "font-medium" : "text-muted-foreground"}>
-                      {labelMappings[opcion]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Gobernanza y Comunidad (Checkboxes Multiselección) */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Gobernanza y Comunidad ¿Cómo cree que el proyecto Souto Vivo podría mejorar la convivencia y la economía del pueblo? (Puede marcar varias opciones):</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
-                {[
-                  "cooperativa", 
-                  "caminos", 
-                  "hacenderas", 
-                  "contacto", 
-                  "otros_gobernanza"
-                ].map((opcion) => {
-                  const isSelected = submission.gobernanzaComunidad?.includes(opcion);
-                  return (
-                    <div key={opcion} className="flex items-center gap-2 text-sm">
-                      {isSelected ? 
-                        <CheckCircle className="h-4 w-4 text-blue-600" /> : 
-                        <div className="h-4 w-4 rounded border border-muted" />
-                      }
-                      <span className={isSelected ? "font-medium" : "text-muted-foreground"}>
-                        {labelMappings[opcion]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              {submission.gobernanzaOtro && (
-                <div className="mt-2 ml-2 p-2 bg-muted/30 rounded-md">
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Otras sugerencias / Especificar:</p>
-                  <p className="text-sm">{submission.gobernanzaOtro}</p>
-                </div>
-              )}
-            </div>
+            {renderArray("Gobernanza y Comunidad", "gobernanzaComunidad", [
+              "cooperativa",
+              "caminos",
+              "hacenderas",
+              "contacto",
+              "otros_gobernanza",
+            ])}
+            {renderItem(
+              "Otra sugerencia gobernanza",
+              "gobernanzaOtro",
+              undefined,
+              "textarea",
+            )}
           </CardContent>
         </Card>
       </div>
@@ -529,33 +838,34 @@ export default function SubmissionDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Observaciones finales
+            <FileText className="h-5 w-5" /> Observaciones finales
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="whitespace-pre-wrap text-sm italic">
-            {submission.observaciones || "No se han añadido observaciones finales."}
-          </p>
+          {renderItem("", "observaciones", undefined, "textarea")}
         </CardContent>
       </Card>
 
+      {/* Footer Metadata - Read Only */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Metadatos
+            <Calendar className="h-5 w-5" /> Metadatos
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Creado</p>
-              <p className="font-medium">{new Date(submission.createdAt).toLocaleString("es-ES")}</p>
+              <p className="font-medium">
+                {new Date(submission.createdAt).toLocaleString("es-ES")}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Actualizado</p>
-              <p className="font-medium">{new Date(submission.updatedAt).toLocaleString("es-ES")}</p>
+              <p className="font-medium">
+                {new Date(submission.updatedAt).toLocaleString("es-ES")}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Fuente</p>
@@ -563,7 +873,9 @@ export default function SubmissionDetailPage() {
             </div>
             <div>
               <p className="text-muted-foreground">Consentimiento RGPD</p>
-              <p className="font-medium">{submission.consentimientoTratamiento ? "Sí" : "No"}</p>
+              <p className="font-medium">
+                {submission.consentimientoTratamiento ? "Sí" : "No"}
+              </p>
             </div>
           </div>
         </CardContent>

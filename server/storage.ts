@@ -51,6 +51,8 @@ export interface IStorage {
     recentLocalities: string[];
   }>;
 
+  deleteSubmission(id: string): Promise<void>;
+
   createOcrJob(job: InsertOcrJob): Promise<OcrJob>;
   getOcrJobs(): Promise<OcrJob[]>;
   getOcrJob(id: string): Promise<OcrJob | undefined>;
@@ -109,6 +111,10 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async deleteSubmission(id: string): Promise<void> {
+    await db.delete(submissions).where(eq(submissions.id, id));
+  }
+
   async getSubmissionByExternalId(
     externalId: string,
   ): Promise<Submission | undefined> {

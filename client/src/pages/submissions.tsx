@@ -1,20 +1,22 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  FileText, 
-  ChevronLeft, 
+import {
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Trash2, // Icono para borrar
+  Pencil, // Icono para editar
+  ChevronLeft,
   ChevronRight,
   X,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -24,6 +26,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Sheet,
   SheetContent,
@@ -40,13 +60,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import type { Submission, SubmissionFilter } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 const statusColors: Record<string, string> = {
   borrador: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
   enviado: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  aprobado: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  aprobado:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   rechazado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  pendiente:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -60,7 +86,15 @@ export default function SubmissionsPage() {
   const [filters, setFilters] = useState<SubmissionFilter>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Estados para acciones
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const limit = 10;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
@@ -75,12 +109,58 @@ export default function SubmissionsPage() {
     return params.toString();
   };
 
-  const { data, isLoading } = useQuery<{ submissions: Submission[]; total: number; pages: number }>({
-    queryKey: ["/api/submissions", { page, limit, search: searchTerm, ...filters }],
+  const { data, isLoading } = useQuery<{
+    submissions: Submission[];
+    total: number;
+    pages: number;
+  }>({
+    queryKey: [
+      "/api/submissions",
+      { page, limit, search: searchTerm, ...filters },
+    ],
     queryFn: async () => {
       const res = await fetch(`/api/submissions?${buildQueryString()}`);
       if (!res.ok) throw new Error("Failed to fetch submissions");
       return res.json();
+    },
+  });
+
+  // Mutación para ACTUALIZAR CÓDIGO (Disponible para todos)
+  const updateCodeMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingId) return;
+      await apiRequest("PATCH", `/api/submissions/${editingId}`, {
+        codigo: editCode,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Código actualizado correctamente" });
+      setEditingId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions"] });
+    },
+    onError: () => {
+      toast({ title: "Error al actualizar el código", variant: "destructive" });
+    },
+  });
+
+  // Mutación para BORRAR (Solo OCR)
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/submissions/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Cuestionario eliminado correctamente" });
+      setDeletingId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error al eliminar",
+        description:
+          "Solo se pueden eliminar cuestionarios importados por OCR.",
+        variant: "destructive",
+      });
+      setDeletingId(null);
     },
   });
 
@@ -98,7 +178,6 @@ export default function SubmissionsPage() {
       }
     });
     params.set("format", format);
-    
     window.open(`/api/submissions/export?${params.toString()}`, "_blank");
   };
 
@@ -108,7 +187,9 @@ export default function SubmissionsPage() {
     setPage(1);
   };
 
-  const hasActiveFilters = Object.values(filters).some(v => v !== undefined && v !== "") || searchTerm;
+  const hasActiveFilters =
+    Object.values(filters).some((v) => v !== undefined && v !== "") ||
+    searchTerm;
 
   return (
     <div className="space-y-6">
@@ -120,23 +201,12 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => handleExport("csv")}
-            data-testid="button-export-csv"
           >
-            <Download className="h-4 w-4 mr-2" />
-            CSV
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleExport("xlsx")}
-            data-testid="button-export-xlsx"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Excel
+            <Download className="h-4 w-4 mr-2" /> CSV
           </Button>
         </div>
       </div>
@@ -148,21 +218,20 @@ export default function SubmissionsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  data-testid="input-search"
-                  placeholder="Buscar por nombre, email, localidad..."
+                  placeholder="Buscar por código, nombre, email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <Button type="submit" variant="secondary" data-testid="button-search">
+              <Button type="submit" variant="secondary">
                 Buscar
               </Button>
             </form>
 
             <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" data-testid="button-open-filters">
+                <Button variant="outline">
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
                   Filtros
                   {hasActiveFilters && (
@@ -184,17 +253,23 @@ export default function SubmissionsPage() {
                     <label className="text-sm font-medium">Estado</label>
                     <Select
                       value={filters.status || ""}
-                      onValueChange={(value) => setFilters({ ...filters, status: value as any || undefined })}
+                      onValueChange={(v) =>
+                        setFilters({
+                          ...filters,
+                          status: (v as any) || undefined,
+                        })
+                      }
                     >
-                      <SelectTrigger data-testid="select-status">
-                        <SelectValue placeholder="Todos los estados" />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="borrador">Borrador</SelectItem>
-                        <SelectItem value="enviado">Enviado</SelectItem>
                         <SelectItem value="aprobado">Aprobado</SelectItem>
+                        <SelectItem value="pendiente">Pendiente</SelectItem>
                         <SelectItem value="rechazado">Rechazado</SelectItem>
+                        <SelectItem value="enviado">Enviado</SelectItem>
+                        <SelectItem value="borrador">Borrador</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -203,237 +278,36 @@ export default function SubmissionsPage() {
                     <label className="text-sm font-medium">Fuente</label>
                     <Select
                       value={filters.source || ""}
-                      onValueChange={(value) => setFilters({ ...filters, source: value as any || undefined })}
+                      onValueChange={(v) =>
+                        setFilters({
+                          ...filters,
+                          source: (v as any) || undefined,
+                        })
+                      }
                     >
-                      <SelectTrigger data-testid="select-source">
-                        <SelectValue placeholder="Todas las fuentes" />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todas</SelectItem>
                         <SelectItem value="web">Web</SelectItem>
                         <SelectItem value="ocr">OCR</SelectItem>
-                        <SelectItem value="google_forms">Google Forms</SelectItem>
+                        <SelectItem value="google_forms">
+                          Google Forms
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Género</label>
-                    <Select
-                      value={filters.genero || ""}
-                      onValueChange={(value) => setFilters({ ...filters, genero: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-genero">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="mujer">Mujer</SelectItem>
-                        <SelectItem value="hombre">Hombre</SelectItem>
-                        <SelectItem value="otros">Otros</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Edad</label>
-                    <Select
-                      value={filters.edad || ""}
-                      onValueChange={(value) => setFilters({ ...filters, edad: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-edad">
-                        <SelectValue placeholder="Todas las edades" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        <SelectItem value="menos_35">Menos de 35 años</SelectItem>
-                        <SelectItem value="entre_35_50">Entre 35 y 50 años</SelectItem>
-                        <SelectItem value="mas_50">Más de 50 años</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Grado de Interés</label>
-                    <Select
-                      value={filters.gradoInteres || ""}
-                      onValueChange={(value) => setFilters({ ...filters, gradoInteres: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-grado-interes">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="alto">Alto</SelectItem>
-                        <SelectItem value="medio">Medio</SelectItem>
-                        <SelectItem value="bajo">Bajo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Superficie</label>
-                    <Select
-                      value={filters.superficieCategoria || ""}
-                      onValueChange={(value) => setFilters({ ...filters, superficieCategoria: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-superficie">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        <SelectItem value="menos_1ha">Menos de 1 ha</SelectItem>
-                        <SelectItem value="entre_1_5ha">Entre 1 y 5 ha</SelectItem>
-                        <SelectItem value="mas_5ha">Más de 5 ha</SelectItem>
-                        <SelectItem value="otra">Otra</SelectItem>
-                        <SelectItem value="no_se">No lo sé</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Uso del Suelo</label>
-                    <Select
-                      value={filters.usoSuelo || ""}
-                      onValueChange={(value) => setFilters({ ...filters, usoSuelo: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-uso-suelo">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="cultivo_activo">Cultivo activo</SelectItem>
-                        <SelectItem value="pasto">Pasto</SelectItem>
-                        <SelectItem value="monte">Monte</SelectItem>
-                        <SelectItem value="sin_uso">Sin uso / abandonado</SelectItem>
-                        <SelectItem value="otro">Otro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Relación con la Finca</label>
-                    <Select
-                      value={filters.relacionFinca || ""}
-                      onValueChange={(value) => setFilters({ ...filters, relacionFinca: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-relacion-finca">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        <SelectItem value="propietario">Propietario</SelectItem>
-                        <SelectItem value="arrendatario">Arrendatario</SelectItem>
-                        <SelectItem value="gestor">Gestor</SelectItem>
-                        <SelectItem value="otra">Otra</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Agricultor Título Principal</label>
-                    <Select
-                      value={filters.agricultorTituloPrincipal || ""}
-                      onValueChange={(value) => setFilters({ ...filters, agricultorTituloPrincipal: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-agricultor-principal">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="si">Sí</SelectItem>
-                        <SelectItem value="no_complementario">No (complementario)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Acceso</label>
-                    <Select
-                      value={filters.acceso || ""}
-                      onValueChange={(value) => setFilters({ ...filters, acceso: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-acceso">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="bueno">Bueno</SelectItem>
-                        <SelectItem value="regular">Regular</SelectItem>
-                        <SelectItem value="malo">Malo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Agua</label>
-                    <Select
-                      value={filters.agua || ""}
-                      onValueChange={(value) => setFilters({ ...filters, agua: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-agua">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="si">Sí</SelectItem>
-                        <SelectItem value="no">No</SelectItem>
-                        <SelectItem value="no_se">No lo sé</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Pendiente</label>
-                    <Select
-                      value={filters.pendiente || ""}
-                      onValueChange={(value) => setFilters({ ...filters, pendiente: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-pendiente">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        <SelectItem value="baja">Baja</SelectItem>
-                        <SelectItem value="media">Media</SelectItem>
-                        <SelectItem value="alta">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Pedregosidad</label>
-                    <Select
-                      value={filters.pedregosidad || ""}
-                      onValueChange={(value) => setFilters({ ...filters, pedregosidad: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-pedregosidad">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        <SelectItem value="baja">Baja</SelectItem>
-                        <SelectItem value="media">Media</SelectItem>
-                        <SelectItem value="alta">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nivel de Actuación</label>
-                    <Select
-                      value={filters.nivelActuacion || ""}
-                      onValueChange={(value) => setFilters({ ...filters, nivelActuacion: value as any || undefined })}
-                    >
-                      <SelectTrigger data-testid="select-nivel-actuacion">
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="solo_diagnostico">Solo diagnóstico</SelectItem>
-                        <SelectItem value="implantacion">Implantación</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-sm font-medium">Localidad</label>
+                    <Input
+                      placeholder="Filtrar por localidad"
+                      value={filters.localidad || ""}
+                      onChange={(e) =>
+                        setFilters({ ...filters, localidad: e.target.value })
+                      }
+                    />
                   </div>
 
                   <div className="flex gap-2 pt-4">
@@ -441,7 +315,6 @@ export default function SubmissionsPage() {
                       variant="outline"
                       className="flex-1"
                       onClick={clearFilters}
-                      data-testid="button-clear-filters"
                     >
                       <X className="h-4 w-4 mr-2" />
                       Limpiar
@@ -452,7 +325,6 @@ export default function SubmissionsPage() {
                         setPage(1);
                         setIsFilterOpen(false);
                       }}
-                      data-testid="button-apply-filters"
                     >
                       <Filter className="h-4 w-4 mr-2" />
                       Aplicar
@@ -466,7 +338,7 @@ export default function SubmissionsPage() {
         <CardContent>
           {isLoading ? (
             <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
@@ -476,22 +348,42 @@ export default function SubmissionsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Código</TableHead>
                       <TableHead>Nombre</TableHead>
-                      <TableHead className="hidden md:table-cell">Localidad</TableHead>
-                      <TableHead className="hidden lg:table-cell">Fuente</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Localidad
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Fuente
+                      </TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead className="hidden sm:table-cell">Fecha</TableHead>
+                      <TableHead className="hidden sm:table-cell">
+                        Fecha
+                      </TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.submissions.map((submission) => (
-                      <TableRow key={submission.id} data-testid={`row-submission-${submission.id}`}>
+                      <TableRow key={submission.id}>
+                        <TableCell className="font-mono font-medium text-primary">
+                          {submission.codigo ? (
+                            <Badge variant="outline" className="font-normal">
+                              {submission.codigo}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">
+                              Sin asignar
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{submission.nombreApellidos || "Sin nombre"}</p>
+                            <p className="font-medium">
+                              {submission.nombreApellidos || "Sin nombre"}
+                            </p>
                             <p className="text-sm text-muted-foreground md:hidden">
-                              {submission.localidad || "Sin localidad"}
+                              {submission.localidad || "-"}
                             </p>
                           </div>
                         </TableCell>
@@ -499,24 +391,61 @@ export default function SubmissionsPage() {
                           {submission.localidad || "-"}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          <Badge variant="outline">
-                            {sourceLabels[submission.source] || submission.source}
+                          <Badge variant="secondary">
+                            {sourceLabels[submission.source] ||
+                              submission.source}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[submission.status]}`}>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[submission.status]}`}
+                          >
                             {submission.status}
                           </span>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-muted-foreground">
-                          {new Date(submission.createdAt).toLocaleDateString("es-ES")}
+                          {new Date(submission.createdAt).toLocaleDateString(
+                            "es-ES",
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/submissions/${submission.id}`}>
-                            <Button variant="ghost" size="icon" data-testid={`button-view-${submission.id}`}>
-                              <Eye className="h-4 w-4" />
+                          <div className="flex justify-end items-center gap-1">
+                            {/* Botón Editar Código (Para todos) */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Editar Código"
+                              onClick={() => {
+                                setEditingId(submission.id);
+                                setEditCode(submission.codigo || "");
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
                             </Button>
-                          </Link>
+
+                            <Link href={`/submissions/${submission.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Ver detalle"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+
+                            {/* Botón Borrar (SOLO OCR) */}
+                            {submission.source === "ocr" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Eliminar (Solo OCR)"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => setDeletingId(submission.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -526,27 +455,22 @@ export default function SubmissionsPage() {
 
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
-                  Mostrando {((page - 1) * limit) + 1} - {Math.min(page * limit, data.total)} de {data.total} resultados
+                  Página {page} de {data.pages}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    data-testid="button-prev-page"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm">
-                    Página {page} de {data.pages}
-                  </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.min(data.pages, p + 1))}
+                    onClick={() => setPage((p) => Math.min(data.pages, p + 1))}
                     disabled={page >= data.pages}
-                    data-testid="button-next-page"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -555,22 +479,79 @@ export default function SubmissionsPage() {
             </>
           ) : (
             <div className="text-center py-12">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-medium">No hay cuestionarios</h3>
               <p className="text-muted-foreground">
-                {hasActiveFilters
-                  ? "No se encontraron resultados con los filtros aplicados"
-                  : "Los cuestionarios enviados aparecerán aquí"}
+                No hay cuestionarios que coincidan con los filtros
               </p>
-              {hasActiveFilters && (
-                <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                  Limpiar filtros
-                </Button>
-              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* DIÁLOGO PARA EDITAR CÓDIGO */}
+      <Dialog
+        open={!!editingId}
+        onOpenChange={(open) => !open && setEditingId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Asignar Código</DialogTitle>
+            <DialogDescription>
+              Introduce el código identificativo para este cuestionario.
+              Formato: SV_JPXX_XXX
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="codigo">Código</Label>
+              <Input
+                id="codigo"
+                placeholder="Ej: SV_JP01_001"
+                value={editCode}
+                onChange={(e) => setEditCode(e.target.value.toUpperCase())}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => updateCodeMutation.mutate()}
+              disabled={updateCodeMutation.isPending}
+            >
+              {updateCodeMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ALERTA DE CONFIRMACIÓN DE BORRADO */}
+      <AlertDialog
+        open={!!deletingId}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente este cuestionario del
+              sistema. Solo se pueden eliminar cuestionarios importados vía OCR.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deletingId && deleteMutation.mutate(deletingId)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
