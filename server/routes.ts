@@ -38,6 +38,169 @@ const PAGE_TEXT_FIELDS: Record<number, Record<string, string>> = {
   },
 };
 
+const GOOGLE_FORMS_MAPPING: Record<string, string> = {
+  // 1. ARRAYS (Checkboxes)
+
+  // Tipo Finca
+  Agrícola: "agricola",
+  Forestal: "forestal",
+  Mixta: "mixta",
+
+  // Necesidades
+  "Mejora de la productividad": "productividad",
+  "Control del matorral": "matorral",
+  "Prevención de incendios": "incendios",
+  "Mejora del suelo": "suelo",
+  "Diversificación de usos": "diversificacion",
+  "Puesta en valor de finca abandonada": "abandonada",
+  "Otras necesidades": "otras",
+
+  // Objetivos Modelo
+  Producción: "produccion",
+  "Conservación del paisaje y biodiversidad": "biodiversidad",
+  "Reducción de costes de mantenimiento": "costes",
+  "Nuevos modelos de impacto social": "social",
+  "Otros objetivos": "otros",
+
+  // Producción Principal (Incluyendo mapeos directos y variaciones)
+  Madera: "madera",
+  Leña: "lena",
+  Castaña: "castana",
+  Vid: "vid",
+  Frutícola: "fruticola",
+  "Frutícola (cereza, pera, manzana)": "fruticola",
+  Hortícola: "horticola",
+  "Hortícola (pimiento, cebolla)": "horticola",
+  Apícola: "apicolas",
+  "Productos apícolas (miel, polen, propóleo)": "apicolas",
+  "Productos apícolas (miel, polen...)": "apicolas",
+  Pasto: "pasto_ganadera",
+  "Pasto/ganadera": "pasto_ganadera",
+
+  // Disponibilidad
+  "Asistir a reuniones o talleres": "reuniones",
+  "Recibir visitas técnicas en la finca": "visitas",
+  "Colaborar en el seguimiento del proyecto": "seguimiento",
+
+  // Formación
+  "Cultivo del castaño": "castano",
+  "Sistemas agroforestales": "agroforestal",
+  "Agricultura regenerativa": "agri_regenerativa",
+  "Ganadería regenerativa": "gana_regenerativa",
+  "Plantaciones de fijación de carbono": "carbono",
+  "Comercialización de productos": "comercializacion",
+  Comercialización: "comercializacion",
+  "Tramitación de ayudas": "ayudas",
+  "Legislación y fiscalidad": "legislacion",
+
+  // Gobernanza (FRASES EXACTAS SEGÚN TU GOOGLE FORM)
+  "Creando una cooperativa o agrupación de productores local.": "cooperativa", // Con punto
+  "Creando una cooperativa o agrupación de productores local": "cooperativa", // Sin punto (por si acaso)
+
+  "Recuperando caminos y accesos que beneficien a toda la vecindad.": "caminos",
+  "Recuperando caminos y accesos que beneficien a toda la vecindad": "caminos",
+
+  'Organizando "hacenderas" o jornadas de trabajo comunitario voluntario.':
+    "hacenderas",
+  'Organizando "hacenderas" o jornadas de trabajo comunitario voluntario':
+    "hacenderas",
+
+  "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra.":
+    "contacto",
+  "Facilitando el contacto entre propietarios que no viven en el pueblo y jóvenes que quieren trabajar la tierra":
+    "contacto",
+
+  Otro: "otros", // Google Forms a veces manda "Otro" literal si no escriben nada
+
+  // 2. ENUMS (Selects únicos)
+  Mujer: "mujer",
+  Hombre: "hombre",
+  Otros: "otros",
+
+  "Menos de 35 años": "menos_35",
+  "<35": "menos_35",
+  "Entre 35 y 50 años": "entre_35_50",
+  "35-50": "entre_35_50",
+  "Más de 50 años": "mas_50",
+  ">50": "mas_50",
+
+  "Propietario/a": "propietario",
+  "Arrendatario/a": "arrendatario",
+  "Gestor/a": "gestor",
+  Otra: "otra",
+
+  "Menos de 1 ha": "menos_1ha",
+  "Entre 1 y 5 ha": "entre_1_5ha",
+  "Más de 5 ha": "mas_5ha",
+  "No lo sé / pendiente de consultar": "no_se",
+  "No lo sé": "no_se",
+
+  "Cultivo activo": "cultivo_activo",
+  Pasto: "pasto",
+  Monte: "monte",
+  "Sin uso / Abandonada": "sin_uso",
+  "Sin uso / abandonado": "sin_uso",
+  Otro: "otro",
+
+  "Bueno (acceso con vehículo)": "bueno",
+  "Bueno (con vehículo)": "bueno",
+  Regular: "regular",
+  Malo: "malo",
+
+  Baja: "baja",
+  Media: "media",
+  Alta: "alta",
+
+  Alto: "alto",
+  Medio: "medio",
+  Bajo: "bajo",
+
+  "Solo diagnóstico y propuesta técnica": "solo_diagnostico",
+  "Implantación de actuaciones piloto": "implantacion",
+
+  "Sí, hay familiares o personas interesadas": "si_familiares",
+  "No, existe riesgo de abandono tras mi jubilación": "no_riesgo_abandono",
+  "Estoy buscando a alguien que quiera trabajarla": "buscando",
+
+  "Sí, me interesa integrarme en una agrupación": "si_agrupacion",
+  "Sí, pero solo para acciones puntuales": "si_puntuales",
+  "No, prefiero gestión individual": "no_individual",
+  "No, prefiero mantener la gestión de mi finca": "no_individual",
+  "No lo sé, necesitaría asesoramiento jurídico": "no_se_asesoria",
+
+  "Sí, mucho": "si_mucho",
+  "Sí, aunque es asumible": "si_asumible",
+  "Sí, aunque dificulta las tareas es asumible": "si_asumible",
+  "No, el tamaño es adecuado": "no_adecuado",
+
+  "Sí, bajo contrato de arrendamiento o cesión": "si_contrato",
+  "Sí, bajo un contrato de arrendamiento o cesión": "si_contrato",
+  "Sí, pero solo a alguien del municipio": "si_municipio",
+  "No, no tengo interés en ceder la gestión": "no",
+};
+
+// Helper para mapear valores individuales o arrays
+const mapGFValue = (value: any, isArray: boolean = false): any => {
+  if (value === undefined || value === null || value === "")
+    return isArray ? [] : null;
+
+  // Si esperamos un array
+  if (isArray) {
+    let items: string[] = [];
+    if (Array.isArray(value)) items = value;
+    else if (typeof value === "string")
+      items = value.split(",").map((s) => s.trim());
+
+    // Mapeamos cada item
+    return items
+      .map((item) => GOOGLE_FORMS_MAPPING[item.trim()] || item.trim())
+      .filter((item) => item !== "");
+  }
+
+  // Si es valor simple
+  const strVal = String(value).trim();
+  return GOOGLE_FORMS_MAPPING[strVal] || strVal;
+};
 // 2. CAMPOS POSICIONALES (Contadores por página)
 // Esta lógica se basa estrictamente en el orden de aparición por página
 const POSITIONAL_MAPPING: Record<
@@ -1265,26 +1428,17 @@ export async function registerRoutes(
     try {
       const data = req.body;
 
-      // ==================================================================
-      // 🕵️ ZONA DE DEPURACIÓN EXTENSA (LOGS)
-      // ==================================================================
-      console.log("\n⬇️⬇️⬇️ RECIBIENDO NUEVO WEBHOOK DE GOOGLE FORMS ⬇️⬇️⬇️");
-      console.log(`🆔 ID Externo recibido: ${data.id}`);
+      // Log para depuración
+      console.log("\n⬇️⬇️ WEBHOOK GOOGLE FORMS RECIBIDO ⬇️⬇️");
+      console.log("Producción Raw:", data.produccion);
+      console.log("Gobernanza Raw:", data.gobernanza);
 
-      console.log(`[Relacion] Valor: "${data.relacion_finca}"`);
-
-      console.log("⬆️⬆️⬆️ FIN DE DATOS RAW ⬆️⬆️⬆️\n");
-      // ==================================================================
-
-      // 1. ID EXTERNO
       const externalId =
         data.id ||
         `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // 2. EVITAR DUPLICADOS
       const existing = await storage.getSubmissionByExternalId(externalId);
       if (existing) {
-        console.log(`⚠️ Duplicado detectado (${externalId}). Ignorando.`);
         return res.status(200).json({
           success: true,
           message: "Duplicado ignorado",
@@ -1292,95 +1446,95 @@ export async function registerRoutes(
         });
       }
 
-      // 3. MAPEO ROBUSTO (Corrige errores de tipos)
+      // 1. Mapeamos primero las listas clave
+      let produccionPrincipal = mapGFValue(data.produccion, true);
+      let objetivosModelo = mapGFValue(data.modelos, true);
+      let gobernanzaComunidad = mapGFValue(data.gobernanza, true);
+
+      // --- LÓGICA DE CORRECCIÓN AUTOMÁTICA ---
+
+      // Si ha marcado algo en producción (madera, leña...), debe marcarse el objetivo "produccion"
+      if (produccionPrincipal && produccionPrincipal.length > 0) {
+        if (!objetivosModelo.includes("produccion")) {
+          objetivosModelo.push("produccion");
+        }
+      }
+
+      // Si ha marcado "Otro" en objetivos pero viene texto en "otros_objetivos", asegurar "otros"
+      if (data.otros_objetivos && data.otros_objetivos.trim() !== "") {
+        if (!objetivosModelo.includes("otros")) {
+          objetivosModelo.push("otros");
+        }
+      }
+
       const submissionData = {
         source: "google_forms",
         status: "aprobado",
         externalId: externalId,
-
-        // Campos simples
         nombreApellidos: data.nombre,
         localidad: data.localidad,
         telefono: data.telefono,
         email: data.email,
-        genero: data.genero,
-        edad: data.edad,
-
-        // Relación
-        relacionFinca: data.relacion,
+        genero: mapGFValue(data.genero),
+        edad: mapGFValue(data.edad),
+        relacionFinca: mapGFValue(data.relacion),
         relacionFincaOtra: data.relacion_otra,
-
-        // ATP
-        agricultorTituloPrincipal: data.atp,
+        agricultorTituloPrincipal: mapGFValue(data.atp),
         asociacionPertenece: data.asociacion,
         referenciasCatastrales: data.catastro,
-
-        // --- SUPERFICIE ---
-        // Si llega null o undefined, no lo asignamos o ponemos null
-        superficieCategoria: data.superficie || null,
+        superficieCategoria: mapGFValue(data.superficie),
         superficieOtra: data.superficie_otra || null,
-
-        // Array
-        tipoFinca: data.tipo_finca,
-
-        // --- USO SUELO ---
-        usoSuelo: data.uso_suelo || null,
+        tipoFinca: mapGFValue(data.tipo_finca, true),
+        usoSuelo: mapGFValue(data.uso_suelo),
         usoSueloOtro: data.uso_suelo_otro || null,
-
-        // --- EN PRODUCCIÓN ---
-        // Aceptamos "si", "sí", "true" o booleano true
         enProduccion:
           String(data.en_produccion).toLowerCase() === "si" ||
           String(data.en_produccion) === "true",
+        acceso: mapGFValue(data.acceso),
+        agua: mapGFValue(data.agua),
+        pendiente: mapGFValue(data.pendiente),
+        pedregosidad: mapGFValue(data.pedregosidad),
+        necesidades: mapGFValue(data.necesidades, true),
+        necesidadesOtras: data.necesidades_otras,
 
-        // Acceso
-        acceso: data.acceso,
+        // Usamos las variables procesadas arriba
+        objetivosModelo: objetivosModelo,
+        produccionPrincipal: produccionPrincipal,
 
-        // --- AGUA ---
-        // Aseguramos que coincida con el ENUM: 'si', 'no', 'no_se'
-        agua: data.agua,
+        otrosObjetivosTexto: data.otros_objetivos,
+        gradoInteres: mapGFValue(data.interes),
+        nivelActuacion: mapGFValue(data.nivel),
+        disponibilidad: mapGFValue(data.disponibilidad, true),
+        relevoGeneracional: mapGFValue(data.relevo),
+        formacion: mapGFValue(data.formacion, true),
+        formacionOtro: data.formacion_otro,
+        colaboracion: mapGFValue(data.colaboracion),
+        minifundio: mapGFValue(data.minifundio),
+        cesionTierras: mapGFValue(data.cesion),
 
-        pendiente: data.pendiente,
-        pedregosidad: data.pedregosidad,
+        // Usamos la variable procesada
+        gobernanzaComunidad: gobernanzaComunidad,
+        gobernanzaOtro: data.gobernanza_otro,
 
-        necesidades: data.necesidades,
-        objetivosModelo: data.modelos,
-        produccionPrincipal: data.produccion,
-
-        gradoInteres: data.interes,
-        nivelActuacion: data.nivel,
-        disponibilidad: data.disponibilidad,
-
-        // --- RELEVO, COLABORACIÓN, ETC ---
-        // Si llega string vacío "", pasamos null para evitar error de Enum
-        relevoGeneracional: data.relevo || null,
-        colaboracion: data.colaboracion || null,
-        minifundio: data.minifundio || null,
-        cesionTierras: data.cesion || null,
-
-        formacion: data.formacion,
-        gobernanzaComunidad: data.gobernanza,
         observaciones: data.observaciones,
-
-        // --- LEGALES ---
-        // Convertimos a booleano real cualquier cosa que parezca true
         consentimientoTratamiento:
           String(data.consentimientoTratamiento) === "true" ||
           data.consentimientoTratamiento === true,
         aceptoComunicaciones:
           String(data.aceptoComunicaciones) === "true" ||
           data.aceptoComunicaciones === true,
-
         fechaFirma: new Date(),
       };
 
-      // 4. GUARDAR EN DB
       const submission = await storage.createSubmission(submissionData as any);
-      console.log(`✅ Cuestionario guardado exitosamente: ID ${submission.id}`);
+
+      console.log(`✅ Google Form procesado. ID: ${submission.id}`);
+      console.log(`   Producción: ${produccionPrincipal.join(", ")}`);
+      console.log(`   Gobernanza: ${gobernanzaComunidad.join(", ")}`);
 
       return res.status(201).json({ success: true, id: submission.id });
     } catch (error) {
-      console.error("❌ ERROR CRÍTICO EN WEBHOOK:", error);
+      console.error("❌ ERROR WEBHOOK:", error);
       return res.status(500).json({ error: "Error al procesar el webhook" });
     }
   });

@@ -35,11 +35,6 @@ const menuItems = [
     icon: FileText,
   },
   {
-    title: "Nuevo Cuestionario",
-    url: "/submissions/new",
-    icon: PlusCircle,
-  },
-  {
     title: "Subir escaneos",
     url: "/ocr",
     icon: Upload,
@@ -48,6 +43,11 @@ const menuItems = [
     title: "Google Forms",
     url: "/google-forms",
     icon: FileSpreadsheet,
+  },
+  {
+    title: "Nuevo Cuestionario",
+    url: "/submissions/new",
+    icon: PlusCircle,
   },
 ];
 
