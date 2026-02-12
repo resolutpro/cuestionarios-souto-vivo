@@ -11,6 +11,7 @@ import {
   insertGoogleFormsConfigSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import { Buffer } from "buffer";
 
 // 1. CAMPOS DE TEXTO SIMPLE (Mapas por página para mayor precisión)
 const PAGE_TEXT_FIELDS: Record<number, Record<string, string>> = {
@@ -1106,13 +1107,14 @@ export async function registerRoutes(
         }
 
         const jobs = [];
+
+        // BUCLE: Procesamos todos los archivos
         for (const file of files) {
           const uniqueSuffix =
             Date.now() + "-" + Math.round(Math.random() * 1e9);
           const filename = uniqueSuffix + path.extname(file.originalname);
 
-          // LÓGICA DE EXTRACCIÓN DE CÓDIGO (NUEVO)
-          // Formato esperado: SV_JPXX_XXX (ej: SV_JP01_001)
+          // LÓGICA DE EXTRACCIÓN DE CÓDIGO
           const codeMatch = file.originalname.match(/(SV_JP\d{2}_\d{3})/i);
           const extractedCode = codeMatch ? codeMatch[1].toUpperCase() : null;
 
@@ -1132,46 +1134,11 @@ export async function registerRoutes(
 
           jobs.push(job);
 
-          (async () => {
-            try {
-              const extractedFieldsList = await analyzeForm(
-                file.buffer,
-                file.mimetype,
-              );
-              const submissionData = mapOcrToSubmission(extractedFieldsList);
-              submissionData.source = "ocr";
-              submissionData.status = "pendiente";
-              submissionData.createdBy = req.session?.user?.username;
+          // EJECUTAR PROCESAMIENTO SIN AWAIT (Background)
+          processOcrJob(job.id, req.session?.user?.username);
+        } // <--- ¡AQUÍ CERRAMOS EL BUCLE!
 
-              // Asignar el código extraído
-              submissionData.codigo = extractedCode;
-
-              // Guardar campos extraídos...
-              for (const item of extractedFieldsList) {
-                await storage.createOcrExtractedField({
-                  ocrJobId: job.id,
-                  fieldName: item.key.replace(/[:.]/g, "").trim(),
-                  proposedValue: item.value.trim(),
-                  confidence: item.confidence,
-                  pageNumber: item.pageNumber,
-                  coordinates: JSON.stringify(item.normalizedVertices),
-                  isVerified: false,
-                });
-              }
-
-              const submission = await storage.createSubmission(submissionData);
-              await storage.updateOcrJobStatus(
-                job.id,
-                "pendiente_revision",
-                submission.id,
-              );
-            } catch (err) {
-              console.error(`Error OCR ${job.id}:`, err);
-              await storage.updateOcrJobStatus(job.id, "pendiente_ocr");
-            }
-          })();
-        }
-
+        // RESPUESTA: Se envía SOLO después de haber iterado todos los archivos
         return res.status(201).json({
           jobs,
           message: `${jobs.length} archivo(s) subido(s) correctamente`,
@@ -1276,8 +1243,12 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Trabajo OCR no encontrado" });
       }
 
-      // Reiniciar el estado a pendiente_ocr para que el worker lo procese de nuevo
+      // 1. Resetear estado visualmente
       const updatedJob = await storage.updateOcrJobStatus(id, "pendiente_ocr");
+
+      // 2. DISPARAR EL PROCESAMIENTO DE NUEVO
+      processOcrJob(id, req.session?.user?.username);
+
       return res.json(updatedJob);
     } catch (error) {
       console.error("Error retrying OCR job:", error);
@@ -1652,6 +1623,75 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Error interno del servidor" });
     }
   });
+
+  async function processOcrJob(jobId: string, username?: string) {
+    try {
+      console.log(`🚀 Iniciando procesamiento OCR para Job ${jobId}...`);
+
+      // 1. Obtener el Job usando el ID de texto directo
+      const job = await storage.getOcrJob(jobId);
+
+      if (!job) {
+        console.error(`❌ Job ${jobId} no encontrado en la BD.`);
+        return;
+      }
+
+      // 2. Obtener el archivo de la BD
+      const filename = path.basename(job.fileUrl);
+      const dbFile = await storage.getFileByName(filename);
+
+      if (!dbFile) {
+        throw new Error(`Archivo ${filename} no encontrado en base de datos.`);
+      }
+
+      const fileBuffer = Buffer.from(dbFile.data, "base64");
+
+      // 3. Procesar con Document AI
+      const extractedFieldsList = await analyzeForm(
+        fileBuffer,
+        dbFile.mimeType,
+      );
+
+      // 4. Mapear resultados
+      const submissionData = mapOcrToSubmission(extractedFieldsList);
+      submissionData.source = "ocr";
+      submissionData.status = "pendiente";
+      submissionData.createdBy = username || job.createdBy;
+
+      // Extraer código del nombre original
+      const codeMatch = job.fileName.match(/(SV_JP\d{2}_\d{3})/i);
+      if (codeMatch) submissionData.codigo = codeMatch[1].toUpperCase();
+
+      // 5. Limpieza previa y guardado de campos
+      await storage.deleteOcrExtractedFields(job.id);
+
+      for (const item of extractedFieldsList) {
+        await storage.createOcrExtractedField({
+          ocrJobId: job.id,
+          fieldName: item.key.replace(/[:.]/g, "").trim(),
+          proposedValue: item.value.trim(),
+          confidence: item.confidence,
+          pageNumber: item.pageNumber,
+          coordinates: JSON.stringify(item.normalizedVertices),
+          isVerified: false,
+        });
+      }
+
+      // 6. Crear Submission y enlazar
+      const submission = await storage.createSubmission(submissionData);
+      await storage.updateOcrJobStatus(
+        job.id,
+        "pendiente_revision",
+        submission.id,
+      );
+
+      console.log(`✅ Job ${jobId} procesado. Submission: ${submission.id}`);
+    } catch (err) {
+      console.error(`❌ Error procesando Job ${jobId}:`, err);
+      // Marcamos como pendiente_ocr para permitir reintentos
+      await storage.updateOcrJobStatus(jobId, "pendiente_ocr");
+    }
+  }
 
   return httpServer;
 }
