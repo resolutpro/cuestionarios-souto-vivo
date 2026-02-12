@@ -279,10 +279,6 @@ const ENUM_MAPPING: Record<
       field: "superficieCategoria",
       value: "no_se",
     },
-    "cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
-    pasto: { field: "usoSuelo", value: "pasto" },
-    monte: { field: "usoSuelo", value: "monte" },
-    "sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
     "bueno (acceso con vehículo)": { field: "acceso", value: "bueno" },
     regular: { field: "acceso", value: "regular" },
     malo: { field: "acceso", value: "malo" },
@@ -316,22 +312,6 @@ const ENUM_MAPPING: Record<
     },
   },
   5: {
-    "sí me interesa integrarme en una agrupación": {
-      field: "colaboracion",
-      value: "si_agrupacion",
-    },
-    "sí pero solo para acciones puntuales": {
-      field: "colaboracion",
-      value: "si_puntuales",
-    },
-    "no prefiero mantener la gestión de mi finca": {
-      field: "colaboracion",
-      value: "no_individual",
-    },
-    "no lo sé necesitaría asesoramiento jurídico": {
-      field: "colaboracion",
-      value: "no_se_asesoria",
-    },
     "sí aunque dificulta las tareas es asumible": {
       field: "minifundio",
       value: "si_asumible",
@@ -504,6 +484,8 @@ export function mapOcrToSubmission(
     gobernanzaComunidad: [],
     objetivosModelo: [],
     disponibilidad: [],
+    usoSuelo: [],
+    colaboracion: [],
   };
 
   // Contadores por página para campos posicionales

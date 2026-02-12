@@ -184,7 +184,8 @@ export default function OcrReviewPage() {
       );
     }
 
-    const value = (formData[field] as string) || "";
+    const rawValue = formData[field];
+    const value = rawValue !== null && rawValue !== undefined ? rawValue : "";
 
     return (
       <div className="space-y-1">
@@ -458,7 +459,7 @@ export default function OcrReviewPage() {
                       { value: "otro", label: "Otro" },
                     ],
                   )}
-                  {formData.usoSuelo === "otro" &&
+                  {((formData.usoSuelo as string[]) || []).includes("otro") &&
                     renderFieldInput("Especificar otro uso", "usoSueloOtro")}
                   {renderFieldInput(
                     "¿Está la finca actualmente en producción?",

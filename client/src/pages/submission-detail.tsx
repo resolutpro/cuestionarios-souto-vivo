@@ -198,7 +198,9 @@ export default function SubmissionDetailPage() {
       );
     }
 
-    const value = (formData[field] as string) || "";
+    // Usamos ?? para que si el valor es 'false' (booleano) no lo cambie por ""
+    const rawValue = formData[field];
+    const value = rawValue !== null && rawValue !== undefined ? rawValue : "";
 
     return (
       <div className="space-y-1">
@@ -395,7 +397,7 @@ export default function SubmissionDetailPage() {
               { value: "otro", label: "Otro" },
             ],
           )}
-          {formData.usoSuelo === "otro" &&
+          {((formData.usoSuelo as string[]) || []).includes("otro") &&
             renderFieldInput("Especificar otro uso", "usoSueloOtro")}
           {renderFieldInput(
             "¿Está la finca actualmente en producción?",
