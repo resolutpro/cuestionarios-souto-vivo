@@ -1373,7 +1373,7 @@ export async function registerRoutes(
       // Pega aquí la URL de tu "Aplicación web" de Apps Script
       // Ejemplo: "https://script.google.com/macros/s/AKfycbx.../exec"
       const GOOGLE_SCRIPT_URL =
-        "https://script.google.com/macros/s/AKfycbwiuSEzGuGQF9xIAw2_dmESinLkK9G2mME7URs_LO2SGwL9-jW2Gm0uqbhytINGZTOv/exec";
+        "https://script.google.com/macros/s/AKfycbzuyOR7Dmtb_7ZpaCfTkmrZbGdM09WBHxaa9wCuwZOxGbrwCQokvv1QHlVkLVf26cIE/exec";
 
       if (GOOGLE_SCRIPT_URL.includes("PEGAR_AQUI")) {
         return res.status(500).json({
