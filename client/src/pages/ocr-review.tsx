@@ -449,7 +449,7 @@ export default function OcrReviewPage() {
                   {renderFieldInput(
                     "Uso actual del suelo",
                     "usoSuelo",
-                    "enum",
+                    "checkbox-array",
                     [
                       { value: "cultivo_activo", label: "Cultivo activo" },
                       { value: "pasto", label: "Pasto" },
@@ -829,7 +829,7 @@ export default function OcrReviewPage() {
                     {renderFieldInput(
                       "¿Estaría dispuesto/a a participar en gestión conjunta?",
                       "colaboracion",
-                      "enum",
+                      "checkbox-array",
                       [
                         {
                           value: "si_agrupacion",

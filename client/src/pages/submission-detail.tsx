@@ -383,13 +383,18 @@ export default function SubmissionDetailPage() {
             ],
           )}
 
-          {renderFieldInput("Uso actual del suelo", "usoSuelo", "enum", [
-            { value: "cultivo_activo", label: "Cultivo activo" },
-            { value: "pasto", label: "Pasto" },
-            { value: "monte", label: "Monte" },
-            { value: "sin_uso", label: "Sin uso / Abandonada" },
-            { value: "otro", label: "Otro" },
-          ])}
+          {renderFieldInput(
+            "Uso actual del suelo",
+            "usoSuelo",
+            "checkbox-array",
+            [
+              { value: "cultivo_activo", label: "Cultivo activo" },
+              { value: "pasto", label: "Pasto" },
+              { value: "monte", label: "Monte" },
+              { value: "sin_uso", label: "Sin uso / Abandonada" },
+              { value: "otro", label: "Otro" },
+            ],
+          )}
           {formData.usoSuelo === "otro" &&
             renderFieldInput("Especificar otro uso", "usoSueloOtro")}
           {renderFieldInput(
@@ -695,7 +700,7 @@ export default function SubmissionDetailPage() {
           {renderFieldInput(
             "¿Estaría dispuesto/a a participar en gestión conjunta?",
             "colaboracion",
-            "enum",
+            "checkbox-array",
             [
               {
                 value: "si_agrupacion",

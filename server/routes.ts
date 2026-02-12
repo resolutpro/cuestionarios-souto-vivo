@@ -242,7 +242,7 @@ const POSITIONAL_MAPPING: Record<
   5: {
     si: [
       { field: "minifundio", value: "si_mucho" }, // 1º Sí ("Sí, mucho") - El prompt dice 3º Sí global pero es 1º de pág 5
-      { field: "cesionTierras", value: "si_contrato" }, // 2º Sí ("Sí, bajo un contrato...")
+      { field: "cesionTierras", value: "si_contrato" }, // 2º So� ("Sí, bajo un contrato...")
       { field: "cesionTierras", value: "si_municipio" }, // 3º Sí ("Sí, pero solo a alguien...")
     ],
     no: [
@@ -358,6 +358,11 @@ const ARRAY_MAPPING: Record<
   Record<string, { field: string; value: string }>
 > = {
   2: {
+    "cultivo activo": { field: "usoSuelo", value: "cultivo_activo" },
+    pasto: { field: "usoSuelo", value: "pasto" },
+    monte: { field: "usoSuelo", value: "monte" },
+    "sin uso / abandonado": { field: "usoSuelo", value: "sin_uso" },
+
     agrícola: { field: "tipoFinca", value: "agricola" },
     forestal: { field: "tipoFinca", value: "forestal" },
     mixta: { field: "tipoFinca", value: "mixta" },
@@ -439,6 +444,23 @@ const ARRAY_MAPPING: Record<
     "legislación y fiscalidad": { field: "formacion", value: "legislacion" },
   },
   5: {
+    "sí me interesa integrarme en una agrupación": {
+      field: "colaboracion",
+      value: "si_agrupacion",
+    },
+    "sí pero solo para acciones puntuales": {
+      field: "colaboracion",
+      value: "si_puntuales",
+    },
+    "no prefiero mantener la gestión de mi finca": {
+      field: "colaboracion",
+      value: "no_individual",
+    },
+    "no lo sé necesitaría asesoramiento jurídico": {
+      field: "colaboracion",
+      value: "no_se_asesoria",
+    },
+
     "creando una cooperativa o agrupación de productores local": {
       field: "gobernanzaComunidad",
       value: "cooperativa",
@@ -572,17 +594,12 @@ export function mapOcrToSubmission(
       );
       if (arrayMatchKey) {
         const mapping = pageArrayMapping[arrayMatchKey];
+        // Ensure the field exists in submission and is an array
+        if (!Array.isArray(submission[mapping.field])) {
+          submission[mapping.field] = [];
+        }
         if (!submission[mapping.field].includes(mapping.value)) {
           submission[mapping.field].push(mapping.value);
-        }
-
-        // Special case: Page 3 "Otros objetivos"
-        if (
-          pageNumber === 3 &&
-          mapping.field === "objetivosModelo" &&
-          mapping.value === "otros"
-        ) {
-          // If the "otros" checkbox is checked, we make sure it's in the array
         }
         continue;
       }
@@ -595,6 +612,9 @@ export function mapOcrToSubmission(
         normalizedName.includes("otros objetivos")) &&
       rawValue.trim().length > 0
     ) {
+      if (!Array.isArray(submission.objetivosModelo)) {
+        submission.objetivosModelo = [];
+      }
       if (!submission.objetivosModelo.includes("otros")) {
         submission.objetivosModelo.push("otros");
       }
@@ -1485,7 +1505,7 @@ export async function registerRoutes(
         superficieCategoria: mapGFValue(data.superficie),
         superficieOtra: data.superficie_otra || null,
         tipoFinca: mapGFValue(data.tipo_finca, true),
-        usoSuelo: mapGFValue(data.uso_suelo),
+        usoSuelo: mapGFValue(data.uso_suelo, true),
         usoSueloOtro: data.uso_suelo_otro || null,
         enProduccion:
           String(data.en_produccion).toLowerCase() === "si" ||
@@ -1508,7 +1528,7 @@ export async function registerRoutes(
         relevoGeneracional: mapGFValue(data.relevo),
         formacion: mapGFValue(data.formacion, true),
         formacionOtro: data.formacion_otro,
-        colaboracion: mapGFValue(data.colaboracion),
+        colaboracion: mapGFValue(data.colaboracion, true),
         minifundio: mapGFValue(data.minifundio),
         cesionTierras: mapGFValue(data.cesion),
 

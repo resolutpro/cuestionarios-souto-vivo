@@ -129,7 +129,7 @@ export const submissions = pgTable("submissions", {
   superficieCategoria: surfaceEnum("superficie_categoria"),
   superficieOtra: text("superficie_otra"),
   tipoFinca: text("tipo_finca").array(),
-  usoSuelo: landUseEnum("uso_suelo"),
+  usoSuelo: text("uso_suelo").array(),
   usoSueloOtro: text("uso_suelo_otro"),
   enProduccion: boolean("en_produccion"),
 
@@ -152,7 +152,7 @@ export const submissions = pgTable("submissions", {
   formacion: text("formacion").array(),
   formacionOtro: text("formacion_otro"),
 
-  colaboracion: collaborationEnum("colaboracion"),
+  colaboracion: text("colaboracion").array(),
   minifundio: minifundioEnum("minifundio"),
   cesionTierras: landTransferEnum("cesion_tierras"),
   gobernanzaComunidad: text("gobernanza_comunidad").array(),
@@ -284,9 +284,7 @@ export const submissionFilterSchema = z.object({
     .enum(["menos_1ha", "entre_1_5ha", "mas_5ha", "otra", "no_se"])
     .optional(),
   tipoFinca: z.string().optional(),
-  usoSuelo: z
-    .enum(["cultivo_activo", "pasto", "monte", "sin_uso", "otro"])
-    .optional(),
+  usoSuelo: z.string().optional(),
   enProduccion: z.boolean().optional(),
   acceso: z.enum(["bueno", "regular", "malo"]).optional(),
   agua: z.enum(["si", "no", "no_se"]).optional(),
