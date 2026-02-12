@@ -1268,6 +1268,23 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/ocr/jobs/:id/retry", requireAuth, async (req, res) => {
+    try {
+      const id = req.params.id as string;
+      const job = await storage.getOcrJob(id);
+      if (!job) {
+        return res.status(404).json({ error: "Trabajo OCR no encontrado" });
+      }
+
+      // Reiniciar el estado a pendiente_ocr para que el worker lo procese de nuevo
+      const updatedJob = await storage.updateOcrJobStatus(id, "pendiente_ocr");
+      return res.json(updatedJob);
+    } catch (error) {
+      console.error("Error retrying OCR job:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
   app.patch("/api/ocr/fields/:id", requireAuth, async (req, res) => {
     try {
       const id = req.params.id as string;
