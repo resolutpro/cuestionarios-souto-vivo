@@ -11,6 +11,7 @@ import {
   Eye,
   AlertTriangle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -271,6 +272,26 @@ export default function OcrUploadPage() {
                         {statusInfo.icon}
                         <span className="ml-1">{statusInfo.label}</span>
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Reejecutar OCR"
+                        onClick={async () => {
+                          try {
+                            await apiRequest("POST", `/api/ocr/jobs/${job.id}/retry`);
+                            queryClient.invalidateQueries({ queryKey: ["/api/ocr/jobs"] });
+                            toast({ title: "Reintentando proceso OCR..." });
+                          } catch (error) {
+                            toast({
+                              title: "Error al reintentar",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        data-testid={`button-retry-${job.id}`}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
                       {(job.status === "ocr_completado" ||
                         job.status === "pendiente_revision") && (
                         <Button variant="outline" size="sm" asChild>
