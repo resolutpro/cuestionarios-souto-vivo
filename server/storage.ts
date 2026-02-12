@@ -134,6 +134,24 @@ export class DatabaseStorage implements IStorage {
     return submission;
   }
   async deleteSubmission(id: string): Promise<void> {
+    // 1. Buscamos los trabajos de OCR asociados a este cuestionario (submissionId)
+    const jobs = await db
+      .select({ id: ocrJobs.id })
+      .from(ocrJobs)
+      .where(eq(ocrJobs.submissionId, id));
+
+    // 2. Para cada trabajo encontrado, eliminamos sus dependencias y el trabajo mismo
+    for (const job of jobs) {
+      // Eliminar los campos extraídos asociados al Job
+      await db
+        .delete(ocrExtractedFields)
+        .where(eq(ocrExtractedFields.ocrJobId, job.id));
+
+      // Eliminar el trabajo de la tabla ocr_jobs
+      await db.delete(ocrJobs).where(eq(ocrJobs.id, job.id));
+    }
+
+    // 3. Finalmente, eliminamos el cuestionario
     await db.delete(submissions).where(eq(submissions.id, id));
   }
 
