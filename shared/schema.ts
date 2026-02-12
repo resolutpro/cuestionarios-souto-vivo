@@ -297,6 +297,10 @@ export const submissionFilterSchema = z.object({
     .optional(),
   source: z.enum(["web", "ocr", "google_forms"]).optional(),
   search: z.string().optional(),
+  jornada: z.string().optional(),
+  sortBy: z.enum(["fecha", "codigo"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+  limit: z.coerce.number().optional(),
 });
 
 export type SubmissionFilter = z.infer<typeof submissionFilterSchema>;

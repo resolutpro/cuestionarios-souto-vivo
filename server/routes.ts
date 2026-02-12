@@ -827,6 +827,10 @@ export async function registerRoutes(
         nivelActuacion: req.query.nivelActuacion || undefined,
         localidad: (req.query.localidad as string) || undefined,
         search: (req.query.search as string) || undefined,
+        sortBy: req.query.sortBy || undefined,
+        sortOrder: req.query.sortOrder || undefined,
+        limit: limit, // Pasamos el límite al validador
+        jornada: (req.query.jornada as string) || undefined,
       });
 
       if (!filterResult.success) {
@@ -1021,6 +1025,7 @@ export async function registerRoutes(
       };
 
       const submission = await storage.createSubmission(data as any);
+
       return res.status(201).json(submission);
     } catch (error) {
       console.error("Error creating submission:", error);

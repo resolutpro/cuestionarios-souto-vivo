@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, or, ilike, like } from "drizzle-orm";
+import { eq, desc, sql, and, or, ilike, like, asc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users,
@@ -303,6 +303,11 @@ export class DatabaseStorage implements IStorage {
         ),
       );
     }
+    if (filters.jornada) {
+      // Busca códigos que empiecen por SV_JP + el número introducido
+      // Ej: Si filtra "01", busca "SV_JP01%"
+      conditions.push(like(submissions.codigo, `SV_JP${filters.jornada}%`));
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -312,15 +317,34 @@ export class DatabaseStorage implements IStorage {
       .where(whereClause);
 
     const total = countResult?.count || 0;
-    const pages = Math.ceil(total / limit);
-    const offset = (page - 1) * limit;
+
+    // Calcular paginación
+    const effectiveLimit = filters.limit || limit; // Usar el del filtro si existe
+    const pages = Math.ceil(total / effectiveLimit);
+    const offset = (page - 1) * effectiveLimit;
+
+    // --- LÓGICA DE ORDENAMIENTO NUEVA ---
+    let orderBy;
+
+    // Determinamos la dirección (descendente por defecto)
+    const isAsc = filters.sortOrder === "asc";
+
+    if (filters.sortBy === "codigo") {
+      // Ordenar por código alfanumérico (agrupa SV_JP01, luego SV_JP02...)
+      orderBy = isAsc ? asc(submissions.codigo) : desc(submissions.codigo);
+    } else {
+      // Por defecto o si es 'fecha'
+      orderBy = isAsc
+        ? asc(submissions.createdAt)
+        : desc(submissions.createdAt);
+    }
 
     const result = await db
       .select()
       .from(submissions)
       .where(whereClause)
-      .orderBy(desc(submissions.createdAt))
-      .limit(limit)
+      .orderBy(orderBy) // Usamos la variable dinámica
+      .limit(effectiveLimit)
       .offset(offset);
 
     return { submissions: result, total, pages };
