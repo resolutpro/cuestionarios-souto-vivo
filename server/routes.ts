@@ -1427,6 +1427,7 @@ export async function registerRoutes(
       console.log("\n⬇️⬇️ WEBHOOK GOOGLE FORMS RECIBIDO ⬇️⬇️");
       console.log("Producción Raw:", data.produccion);
       console.log("Gobernanza Raw:", data.gobernanza);
+      console.log("Fecha firma:", data.fecha_envio);
 
       const externalId =
         data.id ||
@@ -1518,7 +1519,7 @@ export async function registerRoutes(
         aceptoComunicaciones:
           String(data.aceptoComunicaciones) === "true" ||
           data.aceptoComunicaciones === true,
-        fechaFirma: new Date(),
+        fechaFirma: data.fecha_envio ? new Date(data.fecha_envio) : new Date(),
       };
 
       const submission = await storage.createSubmission(submissionData as any);

@@ -69,9 +69,11 @@ import { apiRequest } from "@/lib/queryClient";
 const statusColors: Record<string, string> = {
   borrador: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
   enviado: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  aprobado: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  aprobado:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   rechazado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  pendiente: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  pendiente:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -85,7 +87,9 @@ export default function SubmissionsPage() {
   const page = 1;
   const limit = 2000; // Cargamos un número alto para que se vea todo en una sola página larga
 
-  const [filters, setFilters] = useState<SubmissionFilter & { jornada?: string }>({});
+  const [filters, setFilters] = useState<
+    SubmissionFilter & { jornada?: string }
+  >({});
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -178,7 +182,8 @@ export default function SubmissionsPage() {
     onError: () => {
       toast({
         title: "Error al eliminar",
-        description: "Solo se pueden eliminar cuestionarios importados por OCR.",
+        description:
+          "Solo se pueden eliminar cuestionarios importados por OCR.",
         variant: "destructive",
       });
       setDeletingId(null);
@@ -225,7 +230,11 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => handleExport("csv")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleExport("csv")}
+          >
             <Download className="h-4 w-4 mr-2" /> CSV
           </Button>
         </div>
@@ -254,7 +263,12 @@ export default function SubmissionsPage() {
             <div className="flex gap-2 items-center">
               <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className={hasActiveFilters ? "border-primary text-primary" : ""}>
+                  <Button
+                    variant="outline"
+                    className={
+                      hasActiveFilters ? "border-primary text-primary" : ""
+                    }
+                  >
                     <SlidersHorizontal className="h-4 w-4 mr-2" />
                     Filtros / Jornada
                     {hasActiveFilters && (
@@ -272,24 +286,34 @@ export default function SubmissionsPage() {
                     </SheetDescription>
                   </SheetHeader>
                   <div className="space-y-4 mt-6 pb-20">
-
                     {/* FILTRO JORNADA */}
                     <div className="p-4 bg-muted/30 rounded-lg border space-y-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Filter className="h-3 w-3" /> Filtrar por Jornada
                       </h4>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground">Número de Jornada (XX)</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Número de Jornada (XX)
+                        </label>
                         <div className="flex gap-2 items-center">
-                           <span className="text-sm font-mono text-muted-foreground">SV_JP</span>
-                           <Input 
-                              placeholder="Ej: 01" 
-                              className="w-20 font-mono"
-                              maxLength={2}
-                              value={filters.jornada || ""}
-                              onChange={(e) => setFilters({...filters, jornada: e.target.value})}
-                           />
-                           <span className="text-sm font-mono text-muted-foreground">_XXX</span>
+                          <span className="text-sm font-mono text-muted-foreground">
+                            SV_JP
+                          </span>
+                          <Input
+                            placeholder="Ej: 01"
+                            className="w-20 font-mono"
+                            maxLength={2}
+                            value={filters.jornada || ""}
+                            onChange={(e) =>
+                              setFilters({
+                                ...filters,
+                                jornada: e.target.value,
+                              })
+                            }
+                          />
+                          <span className="text-sm font-mono text-muted-foreground">
+                            _XXX
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -349,7 +373,9 @@ export default function SubmissionsPage() {
                           <SelectItem value="all">Todas</SelectItem>
                           <SelectItem value="web">Web</SelectItem>
                           <SelectItem value="ocr">OCR</SelectItem>
-                          <SelectItem value="google_forms">Google Forms</SelectItem>
+                          <SelectItem value="google_forms">
+                            Google Forms
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -394,14 +420,18 @@ export default function SubmissionsPage() {
                         <SelectContent>
                           <SelectItem value="all">Todas</SelectItem>
                           <SelectItem value="menos_35">Menos de 35</SelectItem>
-                          <SelectItem value="entre_35_50">Entre 35 y 50</SelectItem>
+                          <SelectItem value="entre_35_50">
+                            Entre 35 y 50
+                          </SelectItem>
                           <SelectItem value="mas_50">Más de 50</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Relación con la Finca</label>
+                      <label className="text-sm font-medium">
+                        Relación con la Finca
+                      </label>
                       <Select
                         value={filters.relacionFinca || "all"}
                         onValueChange={(v) =>
@@ -416,8 +446,12 @@ export default function SubmissionsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todas</SelectItem>
-                          <SelectItem value="propietario">Propietario</SelectItem>
-                          <SelectItem value="arrendatario">Arrendatario</SelectItem>
+                          <SelectItem value="propietario">
+                            Propietario
+                          </SelectItem>
+                          <SelectItem value="arrendatario">
+                            Arrendatario
+                          </SelectItem>
                           <SelectItem value="gestor">Gestor</SelectItem>
                           <SelectItem value="otra">Otra</SelectItem>
                         </SelectContent>
@@ -425,13 +459,16 @@ export default function SubmissionsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Agricultor Título Principal</label>
+                      <label className="text-sm font-medium">
+                        Agricultor Título Principal
+                      </label>
                       <Select
                         value={filters.agricultorTituloPrincipal || "all"}
                         onValueChange={(v) =>
                           setFilters({
                             ...filters,
-                            agricultorTituloPrincipal: v === "all" ? undefined : (v as any),
+                            agricultorTituloPrincipal:
+                              v === "all" ? undefined : (v as any),
                           })
                         }
                       >
@@ -441,7 +478,9 @@ export default function SubmissionsPage() {
                         <SelectContent>
                           <SelectItem value="all">Todos</SelectItem>
                           <SelectItem value="si">Sí</SelectItem>
-                          <SelectItem value="no_complementario">No (Complementario)</SelectItem>
+                          <SelectItem value="no_complementario">
+                            No (Complementario)
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -453,7 +492,8 @@ export default function SubmissionsPage() {
                         onValueChange={(v) =>
                           setFilters({
                             ...filters,
-                            superficieCategoria: v === "all" ? undefined : (v as any),
+                            superficieCategoria:
+                              v === "all" ? undefined : (v as any),
                           })
                         }
                       >
@@ -462,17 +502,25 @@ export default function SubmissionsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todas</SelectItem>
-                          <SelectItem value="menos_1ha">Menos de 1 ha</SelectItem>
-                          <SelectItem value="entre_1_5ha">Entre 1 y 5 ha</SelectItem>
+                          <SelectItem value="menos_1ha">
+                            Menos de 1 ha
+                          </SelectItem>
+                          <SelectItem value="entre_1_5ha">
+                            Entre 1 y 5 ha
+                          </SelectItem>
                           <SelectItem value="mas_5ha">Más de 5 ha</SelectItem>
                           <SelectItem value="otra">Otra</SelectItem>
-                          <SelectItem value="no_se">No sabe / No contesta</SelectItem>
+                          <SelectItem value="no_se">
+                            No sabe / No contesta
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Uso del Suelo</label>
+                      <label className="text-sm font-medium">
+                        Uso del Suelo
+                      </label>
                       <Select
                         value={filters.usoSuelo || "all"}
                         onValueChange={(v) =>
@@ -487,7 +535,9 @@ export default function SubmissionsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todos</SelectItem>
-                          <SelectItem value="cultivo_activo">Cultivo Activo</SelectItem>
+                          <SelectItem value="cultivo_activo">
+                            Cultivo Activo
+                          </SelectItem>
                           <SelectItem value="pasto">Pasto</SelectItem>
                           <SelectItem value="monte">Monte</SelectItem>
                           <SelectItem value="sin_uso">Sin Uso</SelectItem>
@@ -566,7 +616,9 @@ export default function SubmissionsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Pedregosidad</label>
+                      <label className="text-sm font-medium">
+                        Pedregosidad
+                      </label>
                       <Select
                         value={filters.pedregosidad || "all"}
                         onValueChange={(v) =>
@@ -589,7 +641,9 @@ export default function SubmissionsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Grado de Interés</label>
+                      <label className="text-sm font-medium">
+                        Grado de Interés
+                      </label>
                       <Select
                         value={filters.gradoInteres || "all"}
                         onValueChange={(v) =>
@@ -612,13 +666,16 @@ export default function SubmissionsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Nivel de Actuación</label>
+                      <label className="text-sm font-medium">
+                        Nivel de Actuación
+                      </label>
                       <Select
                         value={filters.nivelActuacion || "all"}
                         onValueChange={(v) =>
                           setFilters({
                             ...filters,
-                            nivelActuacion: v === "all" ? undefined : (v as any),
+                            nivelActuacion:
+                              v === "all" ? undefined : (v as any),
                           })
                         }
                       >
@@ -627,17 +684,28 @@ export default function SubmissionsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todos</SelectItem>
-                          <SelectItem value="solo_diagnostico">Solo Diagnóstico</SelectItem>
-                          <SelectItem value="implantacion">Implantación</SelectItem>
+                          <SelectItem value="solo_diagnostico">
+                            Solo Diagnóstico
+                          </SelectItem>
+                          <SelectItem value="implantacion">
+                            Implantación
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="flex gap-2 pt-4">
-                      <Button variant="outline" className="flex-1" onClick={clearFilters}>
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={clearFilters}
+                      >
                         <X className="h-4 w-4 mr-2" /> Limpiar
                       </Button>
-                      <Button className="flex-1" onClick={() => setIsFilterOpen(false)}>
+                      <Button
+                        className="flex-1"
+                        onClick={() => setIsFilterOpen(false)}
+                      >
                         <Filter className="h-4 w-4 mr-2" /> Aplicar
                       </Button>
                     </div>
@@ -659,7 +727,6 @@ export default function SubmissionsPage() {
               ))}
             </div>
           ) : data?.submissions && data.submissions.length > 0 ? (
-
             <div>
               <Table>
                 {/* La cabecera sigue siendo sticky (top-0) para que no la pierdas al bajar.
@@ -687,8 +754,12 @@ export default function SubmissionsPage() {
                     </TableHead>
 
                     <TableHead className="w-[250px] bg-card">Nombre</TableHead>
-                    <TableHead className="hidden md:table-cell bg-card">Localidad</TableHead>
-                    <TableHead className="hidden lg:table-cell w-[100px] bg-card">Fuente</TableHead>
+                    <TableHead className="hidden md:table-cell bg-card">
+                      Localidad
+                    </TableHead>
+                    <TableHead className="hidden lg:table-cell w-[100px] bg-card">
+                      Fuente
+                    </TableHead>
                     <TableHead className="w-[100px] bg-card">Estado</TableHead>
 
                     {/* FECHA (Ordenable) */}
@@ -709,7 +780,9 @@ export default function SubmissionsPage() {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead className="text-right w-[120px] bg-card">Acciones</TableHead>
+                    <TableHead className="text-right w-[120px] bg-card">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -717,7 +790,10 @@ export default function SubmissionsPage() {
                     <TableRow key={submission.id}>
                       <TableCell className="font-mono font-medium text-primary">
                         {submission.codigo ? (
-                          <Badge variant="outline" className="font-normal bg-primary/5 hover:bg-primary/10">
+                          <Badge
+                            variant="outline"
+                            className="font-normal bg-primary/5 hover:bg-primary/10"
+                          >
                             {submission.codigo}
                           </Badge>
                         ) : (
@@ -740,7 +816,10 @@ export default function SubmissionsPage() {
                         {submission.localidad || "-"}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        <Badge variant="secondary" className="font-normal text-xs">
+                        <Badge
+                          variant="secondary"
+                          className="font-normal text-xs"
+                        >
                           {sourceLabels[submission.source] || submission.source}
                         </Badge>
                       </TableCell>
@@ -752,7 +831,13 @@ export default function SubmissionsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                        {new Date(submission.createdAt).toLocaleDateString("es-ES")}
+                        {submission.fechaFirma
+                          ? new Date(submission.fechaFirma).toLocaleDateString(
+                              "es-ES",
+                            )
+                          : new Date(submission.createdAt).toLocaleDateString(
+                              "es-ES",
+                            )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-1">
@@ -770,7 +855,12 @@ export default function SubmissionsPage() {
                           </Button>
 
                           <Link href={`/submissions/${submission.id}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalle">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Ver detalle"
+                            >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </Link>
@@ -795,10 +885,12 @@ export default function SubmissionsPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-               <div className="bg-muted/30 p-4 rounded-full mb-4">
-                 <Search className="h-8 w-8 text-muted-foreground" />
-               </div>
-              <h3 className="text-lg font-medium">No se encontraron cuestionarios</h3>
+              <div className="bg-muted/30 p-4 rounded-full mb-4">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium">
+                No se encontraron cuestionarios
+              </h3>
               <p className="text-muted-foreground mt-1 max-w-sm">
                 No hay resultados para los filtros aplicados.
               </p>
@@ -811,17 +903,21 @@ export default function SubmissionsPage() {
 
         {/* PIE INFORMATIVO */}
         <div className="p-2 border-t text-xs text-center text-muted-foreground bg-muted/20">
-             Mostrando {data?.submissions?.length || 0} registros
+          Mostrando {data?.submissions?.length || 0} registros
         </div>
       </Card>
 
       {/* DIÁLOGO PARA EDITAR CÓDIGO */}
-      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+      <Dialog
+        open={!!editingId}
+        onOpenChange={(open) => !open && setEditingId(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Asignar Código</DialogTitle>
             <DialogDescription>
-              Introduce el código identificativo para este cuestionario. Formato: SV_JPXX_XXX
+              Introduce el código identificativo para este cuestionario.
+              Formato: SV_JPXX_XXX
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -839,8 +935,13 @@ export default function SubmissionsPage() {
             <Button variant="outline" onClick={() => setEditingId(null)}>
               Cancelar
             </Button>
-            <Button onClick={() => updateCodeMutation.mutate()} disabled={updateCodeMutation.isPending}>
-              {updateCodeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              onClick={() => updateCodeMutation.mutate()}
+              disabled={updateCodeMutation.isPending}
+            >
+              {updateCodeMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Guardar
             </Button>
           </DialogFooter>
@@ -848,12 +949,16 @@ export default function SubmissionsPage() {
       </Dialog>
 
       {/* ALERTA DE CONFIRMACIÓN DE BORRADO */}
-      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+      <AlertDialog
+        open={!!deletingId}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente este cuestionario del sistema. Solo se pueden eliminar cuestionarios importados vía OCR.
+              Esta acción eliminará permanentemente este cuestionario del
+              sistema. Solo se pueden eliminar cuestionarios importados vía OCR.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
