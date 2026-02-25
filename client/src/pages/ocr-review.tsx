@@ -143,7 +143,7 @@ export default function OcrReviewPage() {
   const renderFieldInput = (
     label: string,
     field: keyof Submission,
-    type: "text" | "enum" | "boolean" | "checkbox-array" = "text",
+    type: "text" | "enum" | "boolean" | "checkbox-array" | "date" = "text",
     options?: { value: string; label: string }[],
   ) => {
     if (type === "checkbox-array" && options) {
@@ -185,7 +185,16 @@ export default function OcrReviewPage() {
     }
 
     const rawValue = formData[field];
-    const value = rawValue !== null && rawValue !== undefined ? rawValue : "";
+    let value: any =
+      rawValue !== null && rawValue !== undefined ? rawValue : "";
+
+    if (type === "date" && value) {
+      try {
+        value = new Date(value as string | Date).toISOString().split("T")[0];
+      } catch (e) {
+        value = "";
+      }
+    }
 
     return (
       <div className="space-y-1">
@@ -1005,6 +1014,8 @@ export default function OcrReviewPage() {
                       </Label>
                     </div>
                   </div>
+
+                  {renderFieldInput("Fecha de firma", "fechaFirma", "date")}
                 </div>
               </div>
             </div>

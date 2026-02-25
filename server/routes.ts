@@ -473,6 +473,22 @@ const normalizeKey = (text: string) => {
     .replace(/\s+/g, " "); // Normalize spaces
 };
 
+function parseSpanishDate(text: string): Date | null {
+  if (!text) return null;
+  // Trata de buscar formatos comunes como DD/MM/YYYY, DD-MM-YYYY o DD.MM.YYYY
+  const matchDate = text.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+  if (matchDate) {
+    let year = parseInt(matchDate[3]);
+    if (year < 100) year += 2000; // Si pone "24" en vez de "2024"
+    return new Date(year, parseInt(matchDate[2]) - 1, parseInt(matchDate[1]));
+  }
+
+  // Intento estándar si el OCR devuelve ISO
+  const parsed = new Date(text);
+  if (!isNaN(parsed.getTime())) return parsed;
+  return null;
+}
+
 export function mapOcrToSubmission(
   extractedFields: any[],
 ): Record<string, any> {
@@ -510,6 +526,18 @@ export function mapOcrToSubmission(
       rawValue === "1" ||
       rawValue.toLowerCase() === "selected" ||
       rawValue === "checked";
+
+    if (
+      normalizedName === "fecha" ||
+      normalizedName.includes("fecha de") ||
+      normalizedName === "en a de"
+    ) {
+      const parsedDate = parseSpanishDate(rawValue);
+      if (parsedDate) {
+        submission.fechaFirma = parsedDate;
+      }
+      continue;
+    }
 
     // 1. Campos Posicionales (Si/No/Baja/Media/Alta)
     const pagePosMapping = POSITIONAL_MAPPING[pageNumber];
